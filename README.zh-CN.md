@@ -15,21 +15,27 @@ Claude Code 的译名参考 [javaht/claude-desktop-zh-cn](https://github.com/jav
 
 ## 安装和使用
 
-适配 Paseo 0.15.4，版本范围限定为 0.15.x。支持桌面版和网页版；原生 iOS / Android 暂不支持。
+适配 Paseo 0.15.4，版本范围限定为 0.15.x。提供桌面版、网页版、原生 iOS 和 Android 适配器。
 
 ```sh
-paseo plugin add git:kogekiplay/paseo-agent-controls-zh --ref v0.1.0
+paseo plugin add git:kogekiplay/paseo-agent-controls-zh --ref v0.2.0
 ```
 
-安装后默认开启。通过命令中心搜索「Agent 控件中文：翻译设置」，或者在插件设置中打开翻译开关。开关保存在当前客户端。关闭、停用或卸载后恢复原文。
+安装后默认开启。通过命令中心搜索「Agent 控件中文：翻译设置」，或者在插件设置中打开翻译开关。网页端开关保存在当前浏览器；原生手机端开关在本次 App 运行期间有效，重启后默认开启。关闭、停用或卸载后恢复原文。
 
 菜单和提示在退出动画结束前保持中文，避免关闭时短暂闪回英文。实际选项值、事件和权限行为保持不变。
 
+## 原生手机 App
+
+在手机当前选中的 Host 上安装或更新插件。更新后请返回会话列表，再进入会话一次，让现有控件重新创建。如果手机仍缓存旧包，关闭并重新打开 App。无需重启 daemon，也无需安装定制版手机 App。
+
+手机 App 和 Host 均需满足插件声明的版本范围。在一台 Host 安装插件，不会自动安装到其他 Host。
+
 ## 数据与适配边界
 
-插件仅在客户端运行，通过现有 Paseo 连接观察 Agent 标识和 Provider 元数据，为每个输入框选择词典。草稿尚无 Agent 快照时，根据显示的 Claude / Opus / Sonnet / Haiku 模型系列识别 Claude。已有 Agent 优先使用真实 Provider，因此 Codex 路由到其他模型时仍使用 Codex 译名。
+插件仅在客户端运行。网页适配器通过现有 Paseo 连接观察 Agent 标识和 Provider 元数据；尚无 Agent 快照的网页草稿根据显示的模型系列识别 Claude。原生适配器读取宿主控件已携带的 Provider。已有 Agent 优先使用真实 Provider，因此 Codex 路由到其他模型时仍使用 Codex 译名。
 
-它不读取聊天正文、不调用外部翻译服务，也不修改提示词、模型名称或权限配置。未知文案保持原样。当前依赖宿主控件的页面结构；Paseo 升级后可能需要适配。
+它不读取聊天正文、不调用外部翻译服务，也不修改提示词、模型名称或权限配置。未知文案保持原样。网页端依赖宿主页面结构；原生端接入 Paseo 0.15.4 向插件暴露的共享 React 元素创建函数，只处理明确识别的 Agent 控件属性、控件标识和关联菜单。这不是公开的宿主国际化 API，升级 Paseo 后可能需要适配；遇到不兼容的运行时会保持原控件并在设置中提示。
 
 ## 本地开发
 
@@ -41,6 +47,8 @@ paseo plugin install /absolute/path/to/paseo-agent-controls-zh
 paseo plugin reload paseo-agent-controls-zh
 ```
 
-`shared/translations.ts` 保存通用词典和 Claude 专用思考强度词典。`client/web.ts` 是唯一使用浏览器 API 的模块，`client/settings.tsx` 使用 React Native 和宿主主题。无需构建步骤或运行时依赖安装。
+`shared/translations.ts` 保存通用词典和 Claude 专用思考强度词典。`client/web.ts` 是唯一使用浏览器 API 的模块，`client/native.tsx` 适配原生渲染；`client/settings.tsx` 使用 React Native 和宿主主题。无需构建步骤或运行时依赖安装。
+
+原生验证包括真实 React 渲染，以及通过 Paseo 的 Metro 模块边界加载 daemon 实际编译包的 iOS / Android 分支测试。它们不等同于物理手机验收。可设置 `PASEO_TEST_BUNDLE` 指向已编译的客户端包，再运行 `npm test -- tests/native-bundle.test.tsx`。
 
 MIT 许可证。

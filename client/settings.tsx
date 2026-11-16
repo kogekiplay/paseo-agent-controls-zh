@@ -1,6 +1,6 @@
 import type { PluginSurfaceProps } from "@getpaseo/plugin/client";
 import { useSyncExternalStore } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Platform, Pressable, ScrollView, Text, View } from "react-native";
 import type { TranslationController } from "./web";
 
 export function createSettingsScreen(controller: TranslationController) {
@@ -31,7 +31,7 @@ export function createSettingsScreen(controller: TranslationController) {
         </Pressable>
         {!controller.supported && (
           <Text style={{ color: theme.colors.foregroundMuted, fontSize: 14, lineHeight: 22 }}>
-            当前客户端暂不支持替换宿主控件文案。请在 Paseo 桌面版或网页版使用；原生 iOS 和 Android 暂不支持。
+            当前客户端的渲染接口与插件适配版本不一致，未启用翻译。请确认客户端版本处于插件声明的兼容范围。
           </Text>
         )}
         <View style={{ gap: 10 }}>
@@ -47,8 +47,15 @@ export function createSettingsScreen(controller: TranslationController) {
         </View>
         <Text style={{ color: theme.colors.foregroundMuted, fontSize: 14, lineHeight: 22 }}>
           中文显示使用本地词典，适用于 Codex、Claude Code 及使用相同控件的其他 Agent。
-          未收录的文案保留原文。开关保存在当前客户端，关闭插件后恢复原文。
+          未收录的文案保留原文。
+          {Platform.OS === "web" ? "开关保存在当前客户端。" : "手机端开关在当前运行期间有效，重新启动后默认开启。"}
+          关闭插件后恢复原文。
         </Text>
+        {Platform.OS !== "web" && controller.supported && (
+          <Text style={{ color: theme.colors.foregroundMuted, fontSize: 14, lineHeight: 22 }}>
+            安装或更新后，请返回会话列表，再进入会话一次，让现有控件重新渲染。
+          </Text>
+        )}
       </ScrollView>
     );
   };
