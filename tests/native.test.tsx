@@ -6,6 +6,11 @@ import Yoga from "yoga-layout";
 import { installNative } from "../client/native";
 import type { TranslationController } from "../client/web";
 
+const nativeMetrics = vi.hoisted(() => ({ fontScale: 1 }));
+vi.mock("react-native", () => ({
+  View: "NativeMeasure", useWindowDimensions: () => nativeMetrics,
+}));
+
 // Matches the native AgentControls -> AgentControlTrigger -> Combobox prop
 // boundaries in getpaseo/paseo v0.15.4. Host JSX calls use the real shared runtime.
 const rawReact = React as unknown as { createElement: (...args: unknown[]) => React.ReactElement };
@@ -105,12 +110,12 @@ function Toolbar(props: Record<string, unknown>) {
   return rawJsx.jsxs("NativeView", { children: [
     rawJsx.jsx(ToolbarControl, {
       testID: "agent-thinking-selector", ref, surface: props.surface ?? "toolbar",
-      label: "Thinking", value: "Ultra code", showToolbarLabel: props.showToolbarLabel ?? true,
+      label: "Thinking", value: props.displayThinking ?? "Ultra code", showToolbarLabel: props.showToolbarLabel ?? true,
       onPress: props.onPress,
     }),
     rawJsx.jsx(ToolbarControl, {
       testID: "mode-control", surface: props.surface ?? "toolbar",
-      label: "Mode", value: "Full access", showToolbarLabel: props.showToolbarLabel ?? true,
+      label: "Mode", value: "Full access", showToolbarLabel: props.showModeLabel ?? props.showToolbarLabel ?? true,
     }),
     rawJsx.jsx(Trigger, { testID: "agent-controls-model", value: "Max", style: toolbarStyle }),
   ] });
@@ -148,7 +153,35 @@ function layoutToolbar(available: number, fontScale: number, shrink: number[]) {
   }
 }
 
+function AdaptiveToolbar(props: Record<string, any>) {
+  return rawJsx.jsx(Toolbar, {
+    provider: props.provider, modelSelectorProviders: props.modelSelectorProviders,
+    thinkingOptions: props.thinkingOptions, displayThinking: props.displayThinking,
+    showToolbarLabel: props.presentation.showThinkingLabel,
+    showModeLabel: props.presentation.showModeLabel,
+  });
+}
+const condensed = {
+  showCarets: false, showThinkingLabel: false, showModeLabel: true, aggregateFeatures: true,
+};
+function adaptiveToolbar(extra: Record<string, unknown> = {}) {
+  return rawJsx.jsx(AdaptiveToolbar, {
+    provider: "codex", modelSelectorProviders: [], comboboxThinkingOptions: levels,
+    thinkingOptions: levels, thinkingAnchorRef: createRef(), glyphSize: 20, canSelectThinking: true,
+    displayThinking: "Extra high", presentation: condensed,
+    modeControl: { modeOptions: [{ id: "full-access", label: "Full access" }], selectedModeId: "full-access" },
+    features: [{ id: "speed", type: "toggle" }, { id: "plan", type: "toggle" }],
+    ...extra,
+  });
+}
+async function measureToolbar(width: number) {
+  await act(() => renderer!.root.findByType("NativeMeasure").props.onLayout({
+    nativeEvent: { layout: { width } },
+  }));
+}
+
 beforeEach(() => {
+  nativeMetrics.fontScale = 1;
   selected = [];
   Reflect.set(globalThis, "IS_REACT_ACT_ENVIRONMENT", true);
   vi.spyOn(console, "error").mockImplementation((message, ...args) => {
@@ -169,6 +202,47 @@ afterEach(async () => {
 });
 
 describe("native render adapter", () => {
+  it("restores the tablet effort label using the actual local row width and keeps feature grouping", async () => {
+    controller = installNative();
+    await mount(adaptiveToolbar());
+    await measureToolbar(430);
+    const controls = renderer!.root.findAllByType("NativePressable");
+    expect(controls[0].props.value).toBe("极高");
+    expect(controls[0].props.showToolbarLabel).toBe(true);
+    expect(controls[1].props.showToolbarLabel).toBe(true);
+    expect(renderer!.root.findByType(AdaptiveToolbar).props.presentation.aggregateFeatures).toBe(true);
+    await measureToolbar(280);
+    expect(renderer!.root.findAllByType("NativePressable")[0].props.showToolbarLabel).toBe(false);
+    await measureToolbar(430);
+    expect(renderer!.root.findAllByType("NativePressable")[0].props.showToolbarLabel).toBe(true);
+    await act(() => controller!.setEnabled(false));
+    expect(renderer!.root.findByType(AdaptiveToolbar).props.presentation).toBe(condensed);
+    expect(renderer!.root.findAllByType("NativePressable")[0].props.showToolbarLabel).toBe(false);
+    await act(() => controller!.setEnabled(true));
+    expect(renderer!.root.findAllByType("NativePressable")[0].props.showToolbarLabel).toBe(true);
+  });
+
+  it("budgets larger system fonts and the longer Claude Ultracode label before revealing effort", async () => {
+    nativeMetrics.fontScale = 2;
+    controller = installNative();
+    await mount(adaptiveToolbar({ provider: "claude", displayThinking: "Ultra code" }));
+    await measureToolbar(430);
+    expect(renderer!.root.findAllByType("NativePressable")[0].props.showToolbarLabel).toBe(false);
+    await measureToolbar(680);
+    expect(renderer!.root.findAllByType("NativePressable")[0].props.showToolbarLabel).toBe(true);
+    expect(renderer!.root.findAllByType("NativePressable")[0].props.value).toBe("Ultracode");
+  });
+
+  it("leaves a tablet's tight icon layout intact at small split-view widths", async () => {
+    controller = installNative();
+    const tight = { ...condensed, showModeLabel: false };
+    await mount(adaptiveToolbar({ presentation: tight }));
+    await measureToolbar(260);
+    expect(renderer!.root.findByType(AdaptiveToolbar).props.presentation).toBe(tight);
+    expect(renderer!.root.findAllByType("NativePressable").slice(0, 2)
+      .map((node) => node.props.showToolbarLabel)).toEqual([false, false]);
+  });
+
   it("reserves native toolbar label widths while preserving trigger styles, refs and actions", async () => {
     const onPress = vi.fn();
     controller = installNative();

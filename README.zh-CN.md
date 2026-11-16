@@ -18,7 +18,7 @@ Claude Code 的译名参考 [javaht/claude-desktop-zh-cn](https://github.com/jav
 适配 Paseo 0.15.4，版本范围限定为 0.15.x。提供桌面版、网页版、原生 iOS 和 Android 适配器。
 
 ```sh
-paseo plugin add git:kogekiplay/paseo-agent-controls-zh --ref v0.2.2
+paseo plugin add git:kogekiplay/paseo-agent-controls-zh --ref v0.2.3
 ```
 
 安装后默认开启。通过命令中心搜索「Agent 控件中文：翻译设置」，或者在插件设置中打开翻译开关。网页端开关保存在当前浏览器；原生手机端开关在本次 App 运行期间有效，重启后默认开启。关闭、停用或卸载后恢复原文。
@@ -31,7 +31,7 @@ paseo plugin add git:kogekiplay/paseo-agent-controls-zh --ref v0.2.2
 
 手机 App 和 Host 均需满足插件声明的版本范围。在一台 Host 安装插件，不会自动安装到其他 Host。
 
-原生工具栏为思考强度和权限文字保留所需宽度，长模型名优先缩短，避免平板横屏时中文标签被挤成省略号。窄屏仍使用 Paseo 自带的图标布局；弹出的选择面板保留原有宽度规则。关闭翻译后恢复原有宽度分配。
+原生工具栏为思考强度和权限文字保留所需宽度，长模型名优先缩短，避免平板横屏时中文标签被挤成省略号。平板的紧凑工具栏会测量当前行的可用宽度，结合系统字号和当前译名估算文字预算；空间足够时恢复被隐藏的思考强度。窄分屏、手机和选择面板保留原有布局，速度和计划等功能仍由宿主决定是否收进设置。关闭翻译后恢复原有宽度和文字显示规则。
 
 ## 数据与适配边界
 

@@ -1,11 +1,14 @@
 import React, {
   createContext,
+  useCallback,
   useContext,
+  useState,
   useSyncExternalStore,
   type ComponentType,
   type ReactNode,
 } from "react";
 import JsxRuntime from "react/jsx-runtime";
+import { View, useWindowDimensions, type LayoutChangeEvent } from "react-native";
 import { translatePhrase, type TranslationContext } from "../shared/translations";
 import type { TranslationController } from "./web";
 
@@ -47,6 +50,34 @@ function groupKind(props: Props): Scope["kind"] | null {
   if (Array.isArray(props.providers) && "thinkingLabel" in props
     && typeof props.onSelect === "function") return "controls";
   return null;
+}
+function isDesktopToolbar(props: Props): boolean {
+  return record(props.presentation) && Array.isArray(props.comboboxThinkingOptions)
+    && record(props.thinkingAnchorRef) && typeof props.canSelectThinking === "boolean"
+    && typeof props.glyphSize === "number";
+}
+function tabletPresentation(props: Props, width: number, fontScale: number): unknown {
+  const presentation = props.presentation;
+  if (!record(presentation) || presentation.showThinkingLabel || !presentation.showModeLabel
+    || !presentation.aggregateFeatures || !props.canSelectThinking || width <= 0) return presentation;
+  const scale = Number.isFinite(fontScale) ? Math.max(1, fontScale) : 1;
+  // Conservative text budget at the host's base font size. Use local toolbar
+  // width rather than device width: a tablet can have a sidebar or split pane.
+  const labelWidth = (label: unknown) => Array.from(typeof label === "string" ? label : "")
+    .reduce((sum, char) => sum + (char.codePointAt(0)! > 0xff ? 17 : 9), 0) * scale;
+  const widths: number[] = [];
+  if (props.canSelectProvider) widths.push(44 + labelWidth(props.displayProvider));
+  if (props.canSelectModel !== false) widths.push(44 + 28 * scale);
+  widths.push(44 + labelWidth(props.displayThinking));
+  if (record(props.modeControl)) {
+    const control = props.modeControl;
+    const modes = Array.isArray(control.modeOptions) ? control.modeOptions.filter(record) : [];
+    const selected = modes.find((option) => option.id === control.selectedModeId) ?? modes[0];
+    widths.push(44 + labelWidth(selected?.label ?? "权限模式"));
+  }
+  if (Array.isArray(props.features) && props.features.length > 0) widths.push(28);
+  const required = widths.reduce((sum, value) => sum + value, 0) + (widths.length - 1) * 4 + 12;
+  return width >= required ? { ...presentation, showThinkingLabel: true } : presentation;
 }
 function controlKind(props: Props): Scope["kind"] | null {
   if (typeof props.testID !== "string") return null;
@@ -175,6 +206,30 @@ export function installNative(): TranslationController {
   const getEnabled = () => enabled && !disposed;
   const notify = () => { for (const listener of Array.from(listeners)) listener(); };
 
+  function NativeToolbar({ originalType, elementProps, active }: {
+    originalType: unknown; elementProps: Props; active: boolean;
+  }): ReactNode {
+    const [width, setWidth] = useState(0);
+    const { fontScale } = useWindowDimensions();
+    const onLayout = useCallback((event: LayoutChangeEvent) => {
+      const next = event.nativeEvent.layout.width;
+      if (Number.isFinite(next) && next > 0) {
+        setWidth((previous) => Math.abs(previous - next) >= 1 ? next : previous);
+      }
+    }, []);
+    const measured = active ? {
+      ...elementProps, presentation: tabletPresentation(elementProps, width, fontScale),
+    } : elementProps;
+    // A zero-height absolute probe measures the existing flex container without
+    // introducing another row around its controls or consuming toolbar width.
+    const probe = create(View, {
+      testID: "agent-controls-zh-toolbar-measure", pointerEvents: "none", accessible: false,
+      importantForAccessibility: "no-hide-descendants",
+      style: { position: "absolute", left: 0, right: 0, top: 0, height: 0 }, onLayout,
+    });
+    return create(React.Fragment, null, probe, create(originalType, measured)) as ReactNode;
+  }
+
   function component(originalType: unknown): ComponentType<Props> {
     const cached = wrappers.get(originalType);
     if (cached) return cached;
@@ -206,7 +261,9 @@ export function installNative(): TranslationController {
           };
         }
       }
-      const element = create(originalType, translated);
+      const element = group === "controls" && isDesktopToolbar(props)
+        ? create(NativeToolbar, { originalType, elementProps: translated, active })
+        : create(originalType, translated);
       return create(ScopeContext.Provider, { value: scope }, element) as ReactNode;
     }
     TranslatedAgentControl.displayName = "AgentControlsChinese";

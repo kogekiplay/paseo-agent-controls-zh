@@ -4,7 +4,7 @@ Codex uses 轻度, 中, 高, 极高, 最大 and Ultra. Claude Code uses 低, 中
 
 Requires Paseo 0.15.4 and supports the desktop, browser, native iOS and native Android clients. Phone clients need the plugin on their selected host. After an update, return to the agent list and reopen the conversation once. Translation starts enabled. Browsers save the enable switch locally; native clients keep it for the current app run.
 
-On native toolbars, effort and permission labels keep their width while long model names shorten to fit. Narrow screens keep Paseo's icon layout, and selection sheets keep their original sizing.
+On native toolbars, effort and permission labels keep their width while long model names shorten to fit. Condensed tablet toolbars restore hidden effort text when the local row width and system font scale permit. Narrow split views and phone controls keep Paseo's icon layout, and selection sheets keep their original sizing.
 
 The browser adapter reads text and accessibility labels in the specified controls and their associated overlays, and observes agent IDs/provider metadata through the existing Paseo connection. The native adapter reads the provider and display props already passed to the host controls. Neither adapter reads or translates chat content, changes drafts, model names, option IDs or permission behavior, or calls an external translation service. Disabling or unloading restores original labels.
 

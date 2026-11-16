@@ -55,6 +55,7 @@ export function createSettingsScreen(controller: TranslationController) {
           <Text style={{ color: theme.colors.foregroundMuted, fontSize: 14, lineHeight: 22 }}>
             安装或更新后，请返回会话列表，再进入会话一次，让现有控件重新渲染。
             平板工具栏优先保留思考强度和权限文字，长模型名称按可用宽度缩短。
+            会根据工具栏实际宽度和系统字号恢复被紧凑布局隐藏的思考强度；分屏过窄时仍保留图标。
           </Text>
         )}
       </ScrollView>

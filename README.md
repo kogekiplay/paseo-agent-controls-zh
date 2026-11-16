@@ -20,7 +20,7 @@ Claude Code's effort names follow the effort-menu mappings in [javaht/claude-des
 Requires Paseo 0.15.4; compatibility is limited to 0.15.x. Desktop, browser, native iOS and native Android clients have adapters.
 
 ```sh
-paseo plugin add git:kogekiplay/paseo-agent-controls-zh --ref v0.2.2
+paseo plugin add git:kogekiplay/paseo-agent-controls-zh --ref v0.2.3
 ```
 
 Translation is enabled on installation. Open the Command Center and search for **Agent 控件中文：翻译设置**, or open this plugin's settings. The browser saves the switch locally. On native clients the switch lasts for the current app run and starts enabled after relaunch. Disabling or unloading restores the original labels.
@@ -33,7 +33,7 @@ Install or update the plugin on the host selected by your phone. After the updat
 
 Both the phone app and host must satisfy the manifest version range. A plugin installed on one host is not automatically installed on another host.
 
-Native toolbars reserve the width of effort and permission labels, letting long model names shrink first. This avoids ellipsized Chinese controls on landscape tablets. Narrow screens keep Paseo's own icon-only presentation, and selection sheets retain their original width rules. Disabling translation restores the original width allocation.
+Native toolbars reserve the width of effort and permission labels, letting long model names shrink first. This avoids ellipsized Chinese controls on landscape tablets. Condensed tablet toolbars measure their local available width and budget for the system font scale and current labels, restoring hidden effort text when space permits. Narrow split views, phone controls and selection sheets retain their original layout. Paseo still decides whether to group features such as speed and plan mode into settings. Disabling translation restores the original width and label-visibility rules.
 
 ## Data and compatibility
 
