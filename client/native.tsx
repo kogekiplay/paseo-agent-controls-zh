@@ -56,10 +56,6 @@ function isMenu(props: Props): boolean {
   return Array.isArray(props.options) && record(props.anchorRef)
     && typeof props.onSelect === "function" && typeof props.onOpenChange === "function";
 }
-function isMenuItem(props: Props): boolean {
-  return typeof props.label === "string" && typeof props.selected === "boolean"
-    && typeof props.active === "boolean" && typeof props.onPress === "function";
-}
 function scoped(kind: Scope["kind"], provider?: string): Scope {
   return { kind, provider, thinking: kind === "thinking" };
 }
@@ -191,8 +187,6 @@ export function installNative(): TranslationController {
             header: header(props.header, scope),
           };
         }
-      } else if (active && isMenuItem(props) && !["none", "controls"].includes(scope.kind)) {
-        translated = displayProps(props, scope);
       }
       const element = create(originalType, translated);
       return create(ScopeContext.Provider, { value: scope }, element) as ReactNode;
@@ -206,8 +200,16 @@ export function installNative(): TranslationController {
     return function (...args: unknown[]) {
       if (!disposed) {
         const [type, props] = args;
-        if (record(props) && (groupKind(props) || controlKind(props)
-          || isMenu(props) || isMenuItem(props))) args[0] = component(type);
+        if (record(props)) {
+          const control = controlKind(props);
+          // Register ownership while the parent constructs its sibling elements.
+          // The control wrapper supplies the provider before the menu renders.
+          if (control && record(props.ref) && !anchors.has(props.ref)) {
+            anchors.set(props.ref, scoped(control));
+          }
+          if (groupKind(props) || control
+            || (isMenu(props) && anchors.has(props.anchorRef as object))) args[0] = component(type);
+        }
       }
       return Reflect.apply(original, undefined, args);
     };

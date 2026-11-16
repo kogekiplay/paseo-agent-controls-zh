@@ -167,6 +167,19 @@ describe("native render adapter", () => {
     expect(controls()[0].props.value).toBe("Max");
   });
 
+  it("does not wrap unrelated menus or menu-item component types", () => {
+    controller = installNative();
+    const item = rawJsx.jsx(Option, {
+      label: "Max", selected: false, active: false, onPress: () => {},
+    });
+    const unrelated = rawJsx.jsx(Menu, {
+      anchorRef: createRef(), options: levels, open: true,
+      onOpenChange: () => {}, onSelect: () => {},
+    });
+    expect(item.type).toBe(Option);
+    expect(unrelated.type).toBe(Menu);
+  });
+
   it("restores mounted controls and open menus when disabled, then reenables without resetting selection state", async () => {
     controller = installNative();
     await mount(group("claude"));
