@@ -20,18 +20,20 @@ Claude Code's effort names follow the effort-menu mappings in [javaht/claude-des
 Requires Paseo 0.15.4; compatibility is limited to 0.15.x. Desktop, browser, native iOS and native Android clients have adapters.
 
 ```sh
-paseo plugin add git:kogekiplay/paseo-agent-controls-zh --ref v0.2.1
+paseo plugin add git:kogekiplay/paseo-agent-controls-zh --ref v0.2.2
 ```
 
 Translation is enabled on installation. Open the Command Center and search for **Agent 控件中文：翻译设置**, or open this plugin's settings. The browser saves the switch locally. On native clients the switch lasts for the current app run and starts enabled after relaunch. Disabling or unloading restores the original labels.
 
 Menus and tooltips retain Chinese through their exit animations. Original option IDs, event handlers and permission behavior stay intact.
 
-## Native phone apps
+## Native phone and tablet apps
 
 Install or update the plugin on the host selected by your phone. After the update, return to the agent list and reopen the conversation once so existing controls are recreated. If the old bundle is cached, close and reopen the phone app. No daemon restart or custom app build is needed.
 
 Both the phone app and host must satisfy the manifest version range. A plugin installed on one host is not automatically installed on another host.
+
+Native toolbars reserve the width of effort and permission labels, letting long model names shrink first. This avoids ellipsized Chinese controls on landscape tablets. Narrow screens keep Paseo's own icon-only presentation, and selection sheets retain their original width rules. Disabling translation restores the original width allocation.
 
 ## Data and compatibility
 
@@ -59,7 +61,7 @@ Paseo compiles the TypeScript source. There is no preparation step, backend entr
 
 To regenerate the sample interface image, run `npm run preview:render` with a local Chrome/Chromium installation. Set `CHROME_BIN` when Chrome is outside the usual installation paths. The renderer uses an isolated temporary profile.
 
-Native verification includes real React rendering and an opt-in test of the daemon-compiled client bundle using Paseo’s Metro host namespace shape for both iOS and Android. Set `PASEO_TEST_BUNDLE` to that bundle file and run `npm test -- tests/native-bundle.test.tsx`. These checks do not substitute for physical-device validation.
+Native verification includes real React rendering, Yoga layout regressions, and an opt-in test of the daemon-compiled client bundle using Paseo's Metro host namespace shape for both iOS and Android. Yoga uses fixed text measurements to check width allocation; it does not test device font measurement. Set `PASEO_TEST_BUNDLE` to that bundle file and run `npm test -- tests/native-bundle.test.tsx`. These checks do not substitute for physical phone or tablet validation.
 
 ## License
 

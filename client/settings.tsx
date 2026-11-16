@@ -48,12 +48,13 @@ export function createSettingsScreen(controller: TranslationController) {
         <Text style={{ color: theme.colors.foregroundMuted, fontSize: 14, lineHeight: 22 }}>
           中文显示使用本地词典，适用于 Codex、Claude Code 及使用相同控件的其他 Agent。
           未收录的文案保留原文。
-          {Platform.OS === "web" ? "开关保存在当前客户端。" : "手机端开关在当前运行期间有效，重新启动后默认开启。"}
+          {Platform.OS === "web" ? "开关保存在当前客户端。" : "原生端开关在当前运行期间有效，重新启动后默认开启。"}
           关闭插件后恢复原文。
         </Text>
         {Platform.OS !== "web" && controller.supported && (
           <Text style={{ color: theme.colors.foregroundMuted, fontSize: 14, lineHeight: 22 }}>
             安装或更新后，请返回会话列表，再进入会话一次，让现有控件重新渲染。
+            平板工具栏优先保留思考强度和权限文字，长模型名称按可用宽度缩短。
           </Text>
         )}
       </ScrollView>

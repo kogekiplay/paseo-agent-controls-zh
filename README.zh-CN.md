@@ -18,18 +18,20 @@ Claude Code 的译名参考 [javaht/claude-desktop-zh-cn](https://github.com/jav
 适配 Paseo 0.15.4，版本范围限定为 0.15.x。提供桌面版、网页版、原生 iOS 和 Android 适配器。
 
 ```sh
-paseo plugin add git:kogekiplay/paseo-agent-controls-zh --ref v0.2.1
+paseo plugin add git:kogekiplay/paseo-agent-controls-zh --ref v0.2.2
 ```
 
 安装后默认开启。通过命令中心搜索「Agent 控件中文：翻译设置」，或者在插件设置中打开翻译开关。网页端开关保存在当前浏览器；原生手机端开关在本次 App 运行期间有效，重启后默认开启。关闭、停用或卸载后恢复原文。
 
 菜单和提示在退出动画结束前保持中文，避免关闭时短暂闪回英文。实际选项值、事件和权限行为保持不变。
 
-## 原生手机 App
+## 原生手机和平板 App
 
 在手机当前选中的 Host 上安装或更新插件。更新后请返回会话列表，再进入会话一次，让现有控件重新创建。如果手机仍缓存旧包，关闭并重新打开 App。无需重启 daemon，也无需安装定制版手机 App。
 
 手机 App 和 Host 均需满足插件声明的版本范围。在一台 Host 安装插件，不会自动安装到其他 Host。
+
+原生工具栏为思考强度和权限文字保留所需宽度，长模型名优先缩短，避免平板横屏时中文标签被挤成省略号。窄屏仍使用 Paseo 自带的图标布局；弹出的选择面板保留原有宽度规则。关闭翻译后恢复原有宽度分配。
 
 ## 数据与适配边界
 
@@ -49,6 +51,6 @@ paseo plugin reload paseo-agent-controls-zh
 
 `shared/translations.ts` 保存通用词典和 Claude 专用思考强度词典。`client/web.ts` 是唯一使用浏览器 API 的模块，`client/native.tsx` 适配原生渲染；`client/settings.tsx` 使用 React Native 和宿主主题。无需构建步骤或运行时依赖安装。
 
-原生验证包括真实 React 渲染，以及通过 Paseo 的 Metro 模块边界加载 daemon 实际编译包的 iOS / Android 分支测试。它们不等同于物理手机验收。可设置 `PASEO_TEST_BUNDLE` 指向已编译的客户端包，再运行 `npm test -- tests/native-bundle.test.tsx`。
+原生验证包括真实 React 渲染、Yoga 布局回归，以及通过 Paseo 的 Metro 模块边界加载 daemon 实际编译包的 iOS / Android 分支测试。Yoga 用固定的文本测量值检查宽度分配，不等同于设备上的字体测量或物理手机、平板验收。可设置 `PASEO_TEST_BUNDLE` 指向已编译的客户端包，再运行 `npm test -- tests/native-bundle.test.tsx`。
 
 MIT 许可证。

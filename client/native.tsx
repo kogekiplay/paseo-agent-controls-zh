@@ -11,7 +11,10 @@ import type { TranslationController } from "./web";
 
 type Props = Record<string, unknown>;
 type Factory = (...args: unknown[]) => unknown;
-type Scope = TranslationContext & { kind: "controls" | "thinking" | "mode" | "feature" | "none" };
+type Scope = TranslationContext & {
+  kind: "controls" | "thinking" | "mode" | "feature" | "none";
+  surface?: "toolbar" | "sheet";
+};
 type Module = Record<PropertyKey, unknown>;
 const ScopeContext = createContext<Scope>({ kind: "none" });
 const OWNER = Symbol.for("paseo.agent-controls-zh.native.cleanup");
@@ -104,10 +107,23 @@ function groupProps(props: Props, scope: Scope): Props {
   if ("modeControl" in props) result.modeControl = mode(props.modeControl, scope.provider);
   return result;
 }
-function displayProps(props: Props, scope: Scope): Props {
+function displayProps(props: Props, scope: Scope, control = false): Props {
   const result = { ...props };
   for (const key of CONTROL_TEXT) {
     if (key in props) result[key] = text(props[key], scope);
+  }
+  // AgentControlTrigger passes its style down to ComboboxTrigger/Pressable.
+  // Keep the short effort and permission labels readable beside a long routed
+  // model name. Paseo's model container remains shrinkable, and its density
+  // logic still owns icon-only controls on narrow screens. Sheet rows keep the
+  // host's width rules. Preserve callback styles and all interaction states.
+  if (control && scope.surface === "toolbar" && (scope.kind === "thinking" || scope.kind === "mode")
+    && "style" in props) {
+    const original = props.style;
+    const reserve = { flexShrink: 0 };
+    result.style = typeof original === "function"
+      ? (...args: unknown[]) => [Reflect.apply(original, undefined, args), reserve]
+      : [original, reserve];
   }
   return result;
 }
@@ -173,8 +189,10 @@ export function installNative(): TranslationController {
         if (active) translated = groupProps(props, scope);
       } else if (control) {
         scope = scoped(control, inherited.provider);
+        scope.surface = props.surface === "toolbar" || props.surface === "sheet"
+          ? props.surface : inherited.surface;
         if (record(props.ref)) anchors.set(props.ref, scope);
-        if (active) translated = displayProps(props, scope);
+        if (active) translated = displayProps(props, scope, true);
       } else if (isMenu(props)) {
         const owner = anchors.get(props.anchorRef as object);
         // Model browsers also use Combobox. Only registered Agent controls own a

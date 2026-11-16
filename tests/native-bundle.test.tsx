@@ -56,12 +56,17 @@ it.skipIf(!bundlePath).each(["ios", "android"])(
       expect(jsx.jsx).not.toBe(originalJsx);
       expect(commands).toHaveLength(1);
       function ThinkingControl(props: Record<string, unknown>) {
-        return jsx.jsx("NativeControl", { ...props });
+        const { surface: _surface, ...rest } = props;
+        return jsx.jsx("NativeControl", {
+          ...rest,
+          style: ({ pressed }: { pressed: boolean }) => [{ flexShrink: 1 }, pressed && { opacity: 0.8 }],
+        });
       }
       function Controls(props: Record<string, unknown>) {
         const ref = useRef(null);
         return jsx.jsx(ThinkingControl, {
           testID: "agent-controls-thinking", ref,
+          surface: "toolbar",
           label: "Thinking", value: (props.thinkingOptions as any[])[0].label,
           accessibilityLabel: `Select thinking option (${(props.thinkingOptions as any[])[0].label})`,
         });
@@ -78,6 +83,9 @@ it.skipIf(!bundlePath).each(["ios", "android"])(
         .toEqual(["Ultracode", "Ultra"]);
       expect(app!.root.findAllByType("NativeControl").map((node) => node.props.label))
         .toEqual(["思考强度", "思考强度"]);
+      const nativeStyle = () => Object.assign({}, ...app!.root.findAllByType("NativeControl")[0]
+        .props.style({ pressed: true }).flat(Infinity).filter(Boolean));
+      expect(nativeStyle()).toMatchObject({ flexShrink: 0, opacity: 0.8 });
       await act(() => {
         settings = create(React.createElement(Settings!, {
           layout: { compact: true, platform },
@@ -90,6 +98,9 @@ it.skipIf(!bundlePath).each(["ios", "android"])(
       await act(() => settings!.root.findByType("NativePressable").props.onPress());
       expect(app!.root.findAllByType("NativeControl").map((node) => node.props.value))
         .toEqual(["Ultra code", "Ultra code"]);
+      for (const control of app!.root.findAllByType("NativeControl")) {
+        expect(control.props.style({ pressed: false })).toEqual([{ flexShrink: 1 }, false]);
+      }
       await act(() => settings!.root.findByType("NativePressable").props.onPress());
       expect(app!.root.findAllByType("NativeControl").map((node) => node.props.value))
         .toEqual(["Ultracode", "Ultra"]);

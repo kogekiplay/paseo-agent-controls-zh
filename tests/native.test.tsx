@@ -2,6 +2,7 @@ import React, { createRef, useRef, useState, type ReactNode } from "react";
 import JsxRuntime from "react/jsx-runtime";
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import Yoga from "yoga-layout";
 import { installNative } from "../client/native";
 import type { TranslationController } from "../client/web";
 
@@ -85,6 +86,68 @@ async function mount(element: ReactNode) {
 function controls() { return renderer!.root.findAllByType("NativeControl"); }
 function options() { return renderer!.root.findAllByType("NativeOption").map((node) => node.props.label); }
 
+// AgentControlTrigger supplies the toolbar style to ComboboxTrigger, which
+// forwards the callback to Pressable. Preserve that boundary, ref and state.
+const toolbarStyle = (state: { pressed: boolean; hovered: boolean }) => [
+  { height: 28, minWidth: 0, flexShrink: 1 },
+  state.hovered && { backgroundColor: "hover-color" },
+  state.pressed && { opacity: 0.8 },
+];
+function Trigger(props: Record<string, unknown>) {
+  return rawJsx.jsx("NativePressable", { ...props });
+}
+function ToolbarControl(props: Record<string, unknown>) {
+  const { surface: _surface, ...rest } = props;
+  return rawJsx.jsx(Trigger, { ...rest, style: toolbarStyle });
+}
+function Toolbar(props: Record<string, unknown>) {
+  const ref = useRef(null);
+  return rawJsx.jsxs("NativeView", { children: [
+    rawJsx.jsx(ToolbarControl, {
+      testID: "agent-thinking-selector", ref, surface: props.surface ?? "toolbar",
+      label: "Thinking", value: "Ultra code", showToolbarLabel: props.showToolbarLabel ?? true,
+      onPress: props.onPress,
+    }),
+    rawJsx.jsx(ToolbarControl, {
+      testID: "mode-control", surface: props.surface ?? "toolbar",
+      label: "Mode", value: "Full access", showToolbarLabel: props.showToolbarLabel ?? true,
+    }),
+    rawJsx.jsx(Trigger, { testID: "agent-controls-model", value: "Max", style: toolbarStyle }),
+  ] });
+}
+function flattenStyle(value: unknown): Record<string, unknown> {
+  return Array.isArray(value) ? Object.assign({}, ...value.map(flattenStyle))
+    : typeof value === "object" && value !== null ? value : {};
+}
+function pressableStyles() {
+  return renderer!.root.findAllByType("NativePressable").map((node) =>
+    flattenStyle(node.props.style({ pressed: true, hovered: true, focused: true })),
+  );
+}
+function layoutToolbar(available: number, fontScale: number, shrink: number[]) {
+  const root = Yoga.Node.create();
+  root.setWidth(available);
+  root.setFlexDirection(Yoga.FLEX_DIRECTION_ROW);
+  root.setGap(Yoga.GUTTER_COLUMN, 4);
+  // Long routed model, thinking label, permission label, two feature icons.
+  const natural = [310 * fontScale, 44 + 70 * fontScale, 44 + 56 * fontScale, 28, 28];
+  try {
+    const nodes = natural.map((width, i) => {
+      const node = Yoga.Node.create();
+      node.setWidth(width);
+      node.setMinWidth(0);
+      node.setFlexShrink(shrink[i] ?? 0);
+      root.insertChild(node, i);
+      return node;
+    });
+    root.calculateLayout(undefined, undefined, Yoga.DIRECTION_LTR);
+    return { natural, widths: nodes.map((node) => node.getComputedWidth()),
+      right: nodes.at(-1)!.getComputedLeft() + nodes.at(-1)!.getComputedWidth() };
+  } finally {
+    root.freeRecursive();
+  }
+}
+
 beforeEach(() => {
   selected = [];
   Reflect.set(globalThis, "IS_REACT_ACT_ENVIRONMENT", true);
@@ -106,6 +169,59 @@ afterEach(async () => {
 });
 
 describe("native render adapter", () => {
+  it("reserves native toolbar label widths while preserving trigger styles, refs and actions", async () => {
+    const onPress = vi.fn();
+    controller = installNative();
+    await mount(rawJsx.jsx(Toolbar, {
+      provider: "codex", modelSelectorProviders: [], thinkingOptions: levels, onPress,
+    }));
+    const styles = pressableStyles();
+    expect(styles.slice(0, 2).map((style) => style.flexShrink)).toEqual([0, 0]);
+    expect(styles[0]).toMatchObject({ height: 28, backgroundColor: "hover-color", opacity: 0.8 });
+    expect(styles[2].flexShrink).toBe(1);
+    const pressable = renderer!.root.findAllByType("NativePressable")[0];
+    expect(pressable.props.value).toBe("Ultra");
+    expect(pressable.props.ref).toBe(renderer!.root.findAllByType(ToolbarControl)[0].props.ref);
+    await act(() => pressable.props.onPress());
+    expect(onPress).toHaveBeenCalledOnce();
+    await act(() => controller!.setEnabled(false));
+    expect(pressableStyles().map((style) => style.flexShrink)).toEqual([1, 1, 1]);
+    await act(() => controller!.setEnabled(true));
+    expect(pressableStyles().map((style) => style.flexShrink)).toEqual([0, 0, 1]);
+  });
+
+  it.each([[430, 1], [560, 1.4], [720, 2]])(
+    "keeps tablet controls in the row at width %s and font scale %s with Yoga",
+    async (available, fontScale) => {
+      const baseline = layoutToolbar(available, fontScale, [1, 1, 1]);
+      expect(baseline.widths[1]).toBeLessThan(baseline.natural[1]);
+      controller = installNative();
+      await mount(rawJsx.jsx(Toolbar, {
+        provider: "claude", modelSelectorProviders: [], thinkingOptions: levels,
+      }));
+      const styles = pressableStyles();
+      const fixed = layoutToolbar(available, fontScale, [1, ...styles.slice(0, 2).map((s) => Number(s.flexShrink))]);
+      expect(fixed.widths[1]).toBeCloseTo(fixed.natural[1], 0);
+      expect(fixed.widths[2]).toBeCloseTo(fixed.natural[2], 0);
+      expect(fixed.widths[0]).toBeGreaterThan(40);
+      expect(fixed.widths[0]).toBeLessThan(baseline.widths[0]);
+      expect(fixed.right).toBeLessThanOrEqual(available);
+    },
+  );
+
+  it("keeps native sheet row widths and compact icon presentation unchanged", async () => {
+    controller = installNative();
+    await mount(rawJsx.jsx(Toolbar, {
+      provider: "codex", modelSelectorProviders: [], thinkingOptions: levels, surface: "sheet",
+    }));
+    expect(pressableStyles().map((style) => style.flexShrink)).toEqual([1, 1, 1]);
+    await act(() => renderer!.update(rawJsx.jsx(Toolbar, {
+      provider: "codex", modelSelectorProviders: [], thinkingOptions: levels, showToolbarLabel: false,
+    })));
+    expect(renderer!.root.findAllByType("NativePressable").slice(0, 2)
+      .map((node) => node.props.showToolbarLabel)).toEqual([false, false]);
+  });
+
   it.each(["claude", "codex"])("renders %s's thinking labels and keeps original option IDs", async (provider) => {
     controller = installNative();
     expect(controller.supported).toBe(true);

@@ -1,7 +1,7 @@
 {
   "name": "paseo-agent-controls-zh",
   "private": true,
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Chinese translations for Paseo agent composer controls, menus and tooltips.",
   "files": [
     "paseo-plugin.json",
@@ -33,6 +33,7 @@
     "react-test-renderer": "^19.1.0",
     "typescript": "^5.9.3",
     "vitest": "^5.1.0",
+    "yoga-layout": "^3.2.1",
     "zod": "^4.4.3"
   },
   "license": "MIT",
