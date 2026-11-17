@@ -58,15 +58,17 @@ const CONTROLS = [
   '[data-testid="agent-controls-settings-list"]',
   '[data-testid="agent-features-sheet"]',
 ].join(",");
+// This is text inside the model trigger, not the owner of a thinking menu.
+const FOLDED_THINKING = '[data-testid="combined-model-selector-thinking-label"]';
 const MENUS = '[data-testid="combobox-desktop-container"],[role="dialog"],[aria-modal="true"]';
 const TOOLTIP = '[role="tooltip"]';
-const SURFACES = `${CONTROLS},${MENUS},${TOOLTIP}`;
+const SURFACES = `${CONTROLS},${FOLDED_THINKING},${MENUS},${TOOLTIP}`;
 const PROVIDER_SIGNALS = '[data-testid^="workspace-tab-agent_"],[data-testid="combined-model-selector"],[data-testid="agent-controls-model"]';
 const EXCLUDED = 'input,textarea,[contenteditable="true"],pre,code,script,style,svg';
 const ATTRIBUTES = ["aria-label", "title", "placeholder"] as const;
 const OWNER = Symbol.for("paseo.agent-controls-zh.cleanup");
 const STORAGE = "paseo.agent-controls-zh.enabled";
-const THINKING = '[data-testid="agent-thinking-selector"],[data-testid="agent-controls-thinking"]';
+const THINKING = `[data-testid="agent-thinking-selector"],[data-testid="agent-controls-thinking"],${FOLDED_THINKING}`;
 interface Change { original: string; translated: string }
 
 export function install(
@@ -229,7 +231,7 @@ export function install(
         }
       }
       const roots = [
-        ...Array.from(document.querySelectorAll(CONTROLS)),
+        ...Array.from(document.querySelectorAll(`${CONTROLS},${FOLDED_THINKING}`)),
         ...ownedMenus.keys(),
         ...ownedTooltips.keys(),
       ];

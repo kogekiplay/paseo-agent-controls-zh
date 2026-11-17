@@ -66,6 +66,25 @@ describe("UI phrase dictionary", () => {
 });
 
 describe("scoped host controls", () => {
+  it("translates 0.16's folded thinking label separately from the model name", async () => {
+    query('[data-testid="combined-model-selector"]').innerHTML = `
+      <span data-testid="combined-model-selector-model-label">Opus Max</span>
+      <span data-testid="combined-model-selector-thinking-label">Max</span>`;
+    controller = install(true);
+    expect(query('[data-testid="combined-model-selector-thinking-label"]').textContent).toBe("最高");
+    expect(query('[data-testid="combined-model-selector-model-label"]').textContent).toBe("Opus Max");
+    activate('[data-testid="combined-model-selector-thinking-label"]');
+    const modelMenu = menu('<span>Max</span><span>High</span>', true);
+    await settle();
+    expect(modelMenu.textContent).toBe("MaxHigh");
+    controller.setEnabled(false);
+    expect(query('[data-testid="combined-model-selector-thinking-label"]').textContent).toBe("Max");
+    controller.setEnabled(true);
+    expect(query('[data-testid="combined-model-selector-thinking-label"]').textContent).toBe("最高");
+    controller.dispose();
+    expect(query('[data-testid="combined-model-selector-thinking-label"]').textContent).toBe("Max");
+  });
+
   it("keeps Codex and Claude isolated across panes and portal menus, even with misleading model names", async () => {
     document.body.innerHTML = ["codex", "claude"].map((provider) => `
       <section data-testid="workspace-pane-${provider}">

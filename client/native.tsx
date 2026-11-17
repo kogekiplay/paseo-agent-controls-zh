@@ -46,20 +46,30 @@ function groupKind(props: Props): Scope["kind"] | null {
   if (!providerOf(props)) return null;
   if (Array.isArray(props.modeOptions) && typeof props.onSelectMode === "function") return "mode";
   if (Array.isArray(props.modelSelectorProviders)
-    && ("thinkingOptions" in props || "comboboxThinkingOptions" in props)) return "controls";
+    && ("thinkingOptions" in props || "comboboxThinkingOptions" in props
+      || Array.isArray(props.thinkingItems))) return "controls";
   if (Array.isArray(props.providers) && "thinkingLabel" in props
     && typeof props.onSelect === "function") return "controls";
   return null;
 }
 function isDesktopToolbar(props: Props): boolean {
-  return record(props.presentation) && Array.isArray(props.comboboxThinkingOptions)
+  if (!record(props.presentation)) return false;
+  // 0.16 builds ComposerControlItem arrays before rendering the toolbar.
+  if (Array.isArray(props.thinkingItems) && Array.isArray(props.featureItems)
+    && record(props.glyphs)) return true;
+  return Array.isArray(props.comboboxThinkingOptions)
     && record(props.thinkingAnchorRef) && typeof props.canSelectThinking === "boolean"
     && typeof props.glyphSize === "number";
 }
 function tabletPresentation(props: Props, width: number, fontScale: number): unknown {
   const presentation = props.presentation;
+  const items = Array.isArray(props.thinkingItems) ? props.thinkingItems.filter(record) : null;
+  const thinking = items?.find((item) => item.testID === "agent-thinking-selector"
+    && item.type === "select");
+  const canSelectThinking = items ? Boolean(thinking) : props.canSelectThinking;
   if (!record(presentation) || presentation.showThinkingLabel || !presentation.showModeLabel
-    || !presentation.aggregateFeatures || !props.canSelectThinking || width <= 0) return presentation;
+    || presentation.foldControls || !presentation.aggregateFeatures
+    || !canSelectThinking || width <= 0) return presentation;
   const scale = Number.isFinite(fontScale) ? Math.max(1, fontScale) : 1;
   // Conservative text budget at the host's base font size. Use local toolbar
   // width rather than device width: a tablet can have a sidebar or split pane.
@@ -67,15 +77,19 @@ function tabletPresentation(props: Props, width: number, fontScale: number): unk
     .reduce((sum, char) => sum + (char.codePointAt(0)! > 0xff ? 17 : 9), 0) * scale;
   const widths: number[] = [];
   if (props.canSelectProvider) widths.push(44 + labelWidth(props.displayProvider));
-  if (props.canSelectModel !== false) widths.push(44 + 28 * scale);
-  widths.push(44 + labelWidth(props.displayThinking));
+  if (props.canSelectModel !== false) widths.push(44 + (items ? 56 : 28) * scale);
+  const choices = thinking && Array.isArray(thinking.choices) ? thinking.choices.filter(record) : [];
+  const selectedThinking = choices.find((choice) => choice.value === thinking?.value);
+  widths.push(44 + labelWidth(items
+    ? selectedThinking?.label ?? thinking?.valueLabel ?? thinking?.title : props.displayThinking));
   if (record(props.modeControl)) {
     const control = props.modeControl;
     const modes = Array.isArray(control.modeOptions) ? control.modeOptions.filter(record) : [];
     const selected = modes.find((option) => option.id === control.selectedModeId) ?? modes[0];
     widths.push(44 + labelWidth(selected?.label ?? "权限模式"));
   }
-  if (Array.isArray(props.features) && props.features.length > 0) widths.push(28);
+  if (items ? (Array.isArray(props.featureItems) && props.featureItems.length > 0) || props.hasPluginItems
+    : Array.isArray(props.features) && props.features.length > 0) widths.push(items ? 36 : 28);
   const required = widths.reduce((sum, value) => sum + value, 0) + (widths.length - 1) * 4 + 12;
   return width >= required ? { ...presentation, showThinkingLabel: true } : presentation;
 }
@@ -96,11 +110,11 @@ function scoped(kind: Scope["kind"], provider?: string): Scope {
 function text(value: unknown, scope: TranslationContext): unknown {
   return typeof value === "string" ? translatePhrase(value, scope) : value;
 }
-function options(value: unknown, scope: TranslationContext): unknown {
+function options(value: unknown, scope: TranslationContext, idKey = "id"): unknown {
   if (!Array.isArray(value)) return value;
   let changed = false;
   const result = value.map((option: unknown) => {
-    if (!record(option) || typeof option.id !== "string" || typeof option.label !== "string") {
+    if (!record(option) || typeof option[idKey] !== "string" || typeof option.label !== "string") {
       return option;
     }
     const label = translatePhrase(option.label, scope);
@@ -122,6 +136,32 @@ function mode(value: unknown, provider?: string): unknown {
   if (!record(value) || !Array.isArray(value.modeOptions)) return value;
   return { ...value, modeOptions: options(value.modeOptions, { provider }) };
 }
+function composerItem(value: unknown, provider?: string): unknown {
+  if (!record(value) || !["select", "toggle", "action"].includes(String(value.type))) return value;
+  const kind = controlKind(value);
+  if (!kind) return value;
+  const scope = scoped(kind, provider);
+  return {
+    ...displayProps(value, scope),
+    tooltip: text(value.tooltip, scope),
+    ...(value.type === "select" ? {
+      // `value` is an option ID in 0.16, never display text.
+      value: value.value,
+      valueLabel: text(value.valueLabel, scope),
+      choices: options(value.choices, scope, "value"),
+    } : {}),
+  };
+}
+function optionControls(value: unknown, scope: TranslationContext): unknown {
+  if (!record(value) || !Array.isArray(value.controls)) return value;
+  return { ...value, controls: value.controls.map((control: unknown) => {
+    if (!record(control) || typeof control.key !== "string") return control;
+    return {
+      ...control, label: text(control.label, scope), tooltip: text(control.tooltip, scope),
+      ...(control.type === "select" ? { choices: options(control.choices, scope, "value") } : {}),
+    };
+  }) };
+}
 function groupProps(props: Props, scope: Scope): Props {
   const thinking = { provider: scope.provider, thinking: true };
   const result: Props = { ...props };
@@ -134,6 +174,10 @@ function groupProps(props: Props, scope: Scope): Props {
   if (Array.isArray(props.features)) {
     result.features = props.features.map((item: unknown) => feature(item, scope));
   }
+  for (const key of ["thinkingItems", "featureItems"]) {
+    if (Array.isArray(props[key])) result[key] = props[key].map((item) => composerItem(item, scope.provider));
+  }
+  if ("optionControls" in props) result.optionControls = optionControls(props.optionControls, scope);
   if ("modeOptions" in props) result.modeOptions = options(props.modeOptions, scope);
   if ("modeControl" in props) result.modeControl = mode(props.modeControl, scope.provider);
   return result;
@@ -170,7 +214,7 @@ function header(value: unknown, scope: Scope): unknown {
 }
 
 /**
- * Paseo 0.15.4 exposes host React modules to client plugins, including their
+ * Paseo 0.15.4 and 0.16 expose host React modules to client plugins, including their
  * underlying CommonJS module in `default`. Intercept element construction only;
  * never modify React internals, original props, option IDs or callbacks.
  */
@@ -217,8 +261,16 @@ export function installNative(): TranslationController {
         setWidth((previous) => Math.abs(previous - next) >= 1 ? next : previous);
       }
     }, []);
+    const presentation = active ? tabletPresentation(elementProps, width, fontScale) : elementProps.presentation;
+    const revealThinking = presentation !== elementProps.presentation
+      && record(presentation) && presentation.showThinkingLabel;
     const measured = active ? {
-      ...elementProps, presentation: tabletPresentation(elementProps, width, fontScale),
+      ...elementProps, presentation,
+      ...(revealThinking && Array.isArray(elementProps.thinkingItems) ? {
+        thinkingItems: elementProps.thinkingItems.map((item) => record(item)
+          && item.testID === "agent-thinking-selector" && item.type === "select"
+          ? { ...item, iconOnly: false } : item),
+      } : {}),
     } : elementProps;
     // A zero-height absolute probe measures the existing flex container without
     // introducing another row around its controls or consuming toolbar width.

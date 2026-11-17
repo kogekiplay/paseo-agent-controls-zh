@@ -180,6 +180,47 @@ async function measureToolbar(width: number) {
   }));
 }
 
+// Paseo 0.16's Desktop/SheetAgentControlsContent receives already-built items;
+// ComposerControl maps their choice values to Combobox option IDs.
+function ItemControls(props: Record<string, any>) {
+  return rawJsx.jsxs("NativeView", { children: [
+    rawJsx.jsx("NativeModel", { label: props.selectedModelId }),
+    ...[...props.thinkingItems, ...props.featureItems].map((item: Record<string, any>) => {
+      const choices = item.choices ?? [];
+      const value = choices.find((choice: Record<string, any>) => choice.value === item.value)?.label;
+      return rawJsx.jsx(ToolbarControl, {
+        testID: item.testID, surface: props.surface ?? "toolbar",
+        label: item.title, value: value ?? item.valueLabel,
+        tooltip: item.tooltip, accessibilityLabel: item.accessibilityLabel,
+        showToolbarLabel: !item.iconOnly,
+        onPress: () => item.onChange(item.value),
+      }, item.id);
+    }),
+  ] });
+}
+function itemToolbar(extra: Record<string, unknown> = {}) {
+  return rawJsx.jsx(ItemControls, {
+    provider: "claude", modelSelectorProviders: [], selectedModelId: "Max",
+    thinkingItems: [{
+      id: "thinking", type: "select", testID: "agent-thinking-selector", title: "Thinking",
+      value: "max", choices: levels.map((option) => ({ value: option.id, label: option.label })),
+      iconOnly: true, accessibilityLabel: "Select thinking option (Max)",
+      onChange: (id: string) => selected.push(id),
+    }],
+    featureItems: [{
+      id: "feature-service_tier", type: "select", testID: "agent-feature-service_tier",
+      title: "Speed", tooltip: "Speed: Fast", value: "Fast",
+      choices: [{ value: "Fast", label: "Fast" }, { value: "default", label: "Standard" }],
+      onChange: (id: string) => selected.push(id),
+    }],
+    canSelectModel: true,
+    modeControl: { modeOptions: [{ id: "full-access", label: "Full access" }], selectedModeId: "full-access" },
+    glyphs: { icon: { size: 20 }, label: { size: 20 } },
+    presentation: { ...condensed, foldControls: false, showModelLabel: true },
+    ...extra,
+  });
+}
+
 beforeEach(() => {
   nativeMetrics.fontScale = 1;
   selected = [];
@@ -202,6 +243,83 @@ afterEach(async () => {
 });
 
 describe("native render adapter", () => {
+  it.each(["claude", "codex"])("translates 0.16 %s item arrays without changing IDs or actions", async (provider) => {
+    controller = installNative();
+    await mount(itemToolbar({ provider }));
+    const host = renderer!.root.findByType(ItemControls);
+    expect(host.props.thinkingItems[0].choices.map((choice: Record<string, any>) => choice.label))
+      .toEqual(provider === "claude"
+        ? ["低", "中", "高", "极高", "最高", "Ultracode"]
+        : ["轻度", "中", "高", "极高", "最大", "Ultra"]);
+    expect(host.props.featureItems[0]).toMatchObject({
+      title: "速度", tooltip: "速度：快速", value: "Fast",
+      choices: [{ value: "Fast", label: "快速" }, { value: "default", label: "标准" }],
+    });
+    expect(host.props.modeControl.modeOptions[0]).toEqual({ id: "full-access", label: "完全访问" });
+    expect(renderer!.root.findByType("NativeModel").props.label).toBe("Max");
+    await act(() => renderer!.root.findAllByType("NativePressable").forEach((node) => node.props.onPress()));
+    expect(selected).toEqual(["max", "Fast"]);
+  });
+
+  it("restores 0.16 precomputed effort visibility at the local width and cleans up mounted items", async () => {
+    controller = installNative();
+    await mount(itemToolbar());
+    await measureToolbar(430);
+    const thinking = () => renderer!.root.findAllByType("NativePressable")[0];
+    expect(thinking().props.showToolbarLabel).toBe(true);
+    await measureToolbar(280);
+    expect(thinking().props.showToolbarLabel).toBe(false);
+    nativeMetrics.fontScale = 2;
+    await measureToolbar(431);
+    expect(thinking().props.showToolbarLabel).toBe(false);
+    await measureToolbar(680);
+    expect(thinking().props.showToolbarLabel).toBe(true);
+    await act(() => controller!.setEnabled(false));
+    expect(thinking().props.value).toBe("Max");
+    expect(thinking().props.showToolbarLabel).toBe(false);
+    await act(() => controller!.setEnabled(true));
+    expect(thinking().props.value).toBe("最高");
+    await act(() => controller!.dispose());
+    expect(thinking().props.value).toBe("Max");
+    expect(thinking().props.showToolbarLabel).toBe(false);
+  });
+
+  it("keeps 0.16 folded and tight layouts and unrelated plugin items under host control", async () => {
+    controller = installNative();
+    const unowned = {
+      id: "plugin-choice", type: "select", testID: "plugin-choice", title: "High",
+      value: "Max", choices: [{ value: "Max", label: "Max" }], onChange: () => {},
+    };
+    await mount(itemToolbar({ featureItems: [unowned], presentation: {
+      ...condensed, foldControls: true,
+    } }));
+    await measureToolbar(1000);
+    expect(renderer!.root.findByType(ItemControls).props.featureItems[0]).toBe(unowned);
+    expect(renderer!.root.findAllByType("NativePressable")[0].props.showToolbarLabel).toBe(false);
+    await act(() => renderer!.update(itemToolbar({ presentation: {
+      ...condensed, showModeLabel: false, foldControls: false,
+    } })));
+    expect(renderer!.root.findAllByType("NativePressable")[0].props.showToolbarLabel).toBe(false);
+  });
+
+  it("translates 0.16 provider option definitions while preserving option storage and callbacks", async () => {
+    const onSetOption = vi.fn();
+    const values = { service_tier: "priority", plan_mode: true };
+    const optionControls = { options: values, onSetOption, controls: [{
+      key: "service_tier", type: "select", label: "Speed", tooltip: "Speed: Fast",
+      choices: [{ value: "priority", label: "Fast" }, { value: "default", label: "Standard" }],
+    }] };
+    controller = installNative();
+    await mount(itemToolbar({ optionControls }));
+    const result = renderer!.root.findByType(ItemControls).props.optionControls;
+    expect(result.controls[0]).toMatchObject({ label: "速度", choices: [
+      { value: "priority", label: "快速" }, { value: "default", label: "标准" },
+    ] });
+    expect(result.options).toBe(values);
+    expect(result.onSetOption).toBe(onSetOption);
+    expect(optionControls.controls[0].label).toBe("Speed");
+  });
+
   it("restores the tablet effort label using the actual local row width and keeps feature grouping", async () => {
     controller = installNative();
     await mount(adaptiveToolbar());

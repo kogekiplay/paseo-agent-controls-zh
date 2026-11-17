@@ -9,7 +9,7 @@ const jsx = require("react/jsx-runtime");
 const rawReact = require("react");
 const bundlePath = process.env.PASEO_TEST_BUNDLE;
 
-// Exact namespace shape used by Metro in Paseo v0.15.4's plugins/evaluate.ts:
+// Namespace shape used by Metro in Paseo 0.15.4 and 0.16's plugins/evaluate.ts:
 // named exports are getters; `default` points to the underlying CommonJS module.
 function hostNamespace(module: Record<string, unknown>) {
   const result: Record<string, unknown> = { default: module };
@@ -19,9 +19,11 @@ function hostNamespace(module: Record<string, unknown>) {
   return result;
 }
 
-it.skipIf(!bundlePath).each(["ios", "android"])(
-  "executes the daemon-compiled bundle with Paseo's %s host module boundary",
-  async (platform) => {
+it.skipIf(!bundlePath).each([
+  ["0.15", "ios"], ["0.15", "android"], ["0.16", "ios"], ["0.16", "android"],
+])(
+  "executes the daemon-compiled bundle with Paseo %s's %s host boundary",
+  async (version, platform) => {
     const originalJsx = jsx.jsx;
     const originalCreate = rawReact.createElement;
     let release: (() => void) | undefined;
@@ -65,20 +67,33 @@ it.skipIf(!bundlePath).each(["ios", "android"])(
       }
       function Controls(props: Record<string, unknown>) {
         const ref = useRef(null);
+        const item = (props.thinkingItems as any[] | undefined)?.[0];
+        const label = item?.choices[0].label ?? (props.thinkingOptions as any[])[0].label;
         return jsx.jsx(ThinkingControl, {
           testID: "agent-controls-thinking", ref,
           surface: "toolbar",
-          label: "Thinking", value: (props.thinkingOptions as any[])[0].label,
-          showToolbarLabel: (props.presentation as Record<string, unknown>).showThinkingLabel,
-          accessibilityLabel: `Select thinking option (${(props.thinkingOptions as any[])[0].label})`,
+          label: "Thinking", value: label,
+          showToolbarLabel: item ? !item.iconOnly
+            : (props.presentation as Record<string, unknown>).showThinkingLabel,
+          accessibilityLabel: `Select thinking option (${label})`,
         });
       }
       await act(() => {
         app = create(jsx.jsxs("NativeView", { children: ["claude", "codex"].map((provider) =>
           jsx.jsx(Controls, {
-            provider, thinkingOptions: [{ id: "ultra", label: "Ultra code" }],
-            modelSelectorProviders: [], comboboxThinkingOptions: [{ id: "ultra", label: "Ultra code" }],
-            thinkingAnchorRef: rawReact.createRef(), canSelectThinking: true, glyphSize: 20,
+            provider, modelSelectorProviders: [],
+            ...(version === "0.16" ? {
+              thinkingItems: [{
+                id: "thinking", testID: "agent-thinking-selector", type: "select", title: "Thinking",
+                value: "ultra", choices: [{ value: "ultra", label: "Ultra code" }], iconOnly: true,
+              }],
+              featureItems: [{ id: "plan", testID: "agent-feature-plan_mode", type: "toggle", title: "Plan mode", value: true }],
+              glyphs: { label: { size: 20 }, icon: { size: 20 } },
+            } : {
+              thinkingOptions: [{ id: "ultra", label: "Ultra code" }],
+              comboboxThinkingOptions: [{ id: "ultra", label: "Ultra code" }],
+              thinkingAnchorRef: rawReact.createRef(), canSelectThinking: true, glyphSize: 20,
+            }),
             displayThinking: "Ultra code",
             presentation: {
               showThinkingLabel: false, showModeLabel: true, showCarets: false, aggregateFeatures: true,

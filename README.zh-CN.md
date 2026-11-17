@@ -15,10 +15,10 @@ Claude Code 的译名参考 [javaht/claude-desktop-zh-cn](https://github.com/jav
 
 ## 安装和使用
 
-适配 Paseo 0.15.4，版本范围限定为 0.15.x。提供桌面版、网页版、原生 iOS 和 Android 适配器。
+适配 Paseo 0.15.4 起的 0.15.x 和 0.16.x。提供桌面版、网页版、原生 iOS 和 Android 适配器。
 
 ```sh
-paseo plugin add git:kogekiplay/paseo-agent-controls-zh --ref v0.2.3
+paseo plugin add git:kogekiplay/paseo-agent-controls-zh --ref v0.2.4
 ```
 
 安装后默认开启。通过命令中心搜索「Agent 控件中文：翻译设置」，或者在插件设置中打开翻译开关。网页端开关保存在当前浏览器；原生手机端开关在本次 App 运行期间有效，重启后默认开启。关闭、停用或卸载后恢复原文。
@@ -37,7 +37,7 @@ paseo plugin add git:kogekiplay/paseo-agent-controls-zh --ref v0.2.3
 
 插件仅在客户端运行。网页适配器通过现有 Paseo 连接观察 Agent 标识和 Provider 元数据；尚无 Agent 快照的网页草稿根据显示的模型系列识别 Claude。原生适配器读取宿主控件已携带的 Provider。已有 Agent 优先使用真实 Provider，因此 Codex 路由到其他模型时仍使用 Codex 译名。
 
-它不读取聊天正文、不调用外部翻译服务，也不修改提示词、模型名称或权限配置。未知文案保持原样。网页端依赖宿主页面结构；原生端接入 Paseo 0.15.4 向插件暴露的共享 React 元素创建函数，只处理明确识别的 Agent 控件属性、控件标识和关联菜单。这不是公开的宿主国际化 API，升级 Paseo 后可能需要适配；遇到不兼容的运行时会保持原控件并在设置中提示。
+它不读取聊天正文、不调用外部翻译服务，也不修改提示词、模型名称或权限配置。未知文案保持原样。网页端依赖宿主页面结构；原生端接入 Paseo 0.15.4 和 0.16 向插件暴露的共享 React 元素创建函数，只处理明确识别的 Agent 控件属性、控件标识和关联菜单，同时适配 0.15 控件与 0.16 预先生成的控件项目和 Provider 选项。这不是公开的宿主国际化 API，升级 Paseo 后可能需要适配；遇到不兼容的运行时会保持原控件并在设置中提示。
 
 ## 本地开发
 

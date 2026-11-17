@@ -17,10 +17,10 @@ Claude Code's effort names follow the effort-menu mappings in [javaht/claude-des
 
 ## Install
 
-Requires Paseo 0.15.4; compatibility is limited to 0.15.x. Desktop, browser, native iOS and native Android clients have adapters.
+Requires Paseo 0.15.4 or later in the 0.15.x or 0.16.x series. Desktop, browser, native iOS and native Android clients have adapters.
 
 ```sh
-paseo plugin add git:kogekiplay/paseo-agent-controls-zh --ref v0.2.3
+paseo plugin add git:kogekiplay/paseo-agent-controls-zh --ref v0.2.4
 ```
 
 Translation is enabled on installation. Open the Command Center and search for **Agent 控件中文：翻译设置**, or open this plugin's settings. The browser saves the switch locally. On native clients the switch lasts for the current app run and starts enabled after relaunch. Disabling or unloading restores the original labels.
@@ -39,7 +39,7 @@ Native toolbars reserve the width of effort and permission labels, letting long 
 
 This is a client-only plugin. The browser adapter observes agent IDs and provider metadata through the existing Paseo connection to select a dictionary for each composer. Browser drafts without agent metadata recognize Claude by the displayed model family. The native adapter uses the provider already passed to the host control components. Existing agents prefer their actual provider, so a Codex agent routing to another model still uses Codex labels.
 
-It does not read chat content, contact a translation service, or change prompts, model names or permission settings. Unknown phrases keep their original text. The browser adapter depends on host page structure. The native adapter hooks the shared React element factories exposed to plugins in Paseo 0.15.4, and only wraps recognized Agent control prop shapes, control test IDs and their owned menus. This is a version-specific integration, not a public host-localization API; unsupported render runtimes leave controls unchanged and report the limitation in settings.
+It does not read chat content, contact a translation service, or change prompts, model names or permission settings. Unknown phrases keep their original text. The browser adapter depends on host page structure. The native adapter hooks the shared React element factories exposed to plugins in Paseo 0.15.4 and 0.16, and only wraps recognized Agent control prop shapes, control test IDs and their owned menus. It handles both the 0.15 controls and 0.16's precomputed control items and provider option choices. This is a version-specific integration, not a public host-localization API; unsupported render runtimes leave controls unchanged and report the limitation in settings.
 
 ## Development
 
