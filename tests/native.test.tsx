@@ -8,7 +8,7 @@ import type { TranslationController } from "../client/web";
 
 const nativeMetrics = vi.hoisted(() => ({ fontScale: 1 }));
 vi.mock("react-native", () => ({
-  View: "NativeMeasure", useWindowDimensions: () => nativeMetrics,
+  Text: "NativeText", View: "NativeMeasure", useWindowDimensions: () => nativeMetrics,
 }));
 
 // Matches the native AgentControls -> AgentControlTrigger -> Combobox prop
@@ -221,6 +221,26 @@ function itemToolbar(extra: Record<string, unknown> = {}) {
   });
 }
 
+const routedModel = "GPT-6.1 Sol · routing group";
+const modelTextStyle = { fontSize: 17, color: "muted", minWidth: 0, flexShrink: 1 };
+function WordBoundaryModelLabel(props: Record<string, unknown>) {
+  return rawJsx.jsx("WordBoundaryLabel", props);
+}
+function FoldedModel(props: Record<string, unknown>) {
+  return rawJsx.jsxs("NativeModelTrigger", { onPress: props.onSelect, children: [
+    rawJsx.jsx(WordBoundaryModelLabel, {
+      testID: "combined-model-selector-model-label", text: routedModel, style: modelTextStyle,
+    }),
+    rawJsx.jsx("NativeEffortLabel", { children: props.thinkingLabel }),
+    rawJsx.jsx("NativeModelOption", { label: "Max", value: "Max" }),
+  ] });
+}
+function foldedModel(onSelect = () => {}) {
+  return rawJsx.jsx(FoldedModel, {
+    providers: [], selectedProvider: "codex", thinkingLabel: "Extra high", onSelect,
+  });
+}
+
 beforeEach(() => {
   nativeMetrics.fontScale = 1;
   selected = [];
@@ -243,6 +263,45 @@ afterEach(async () => {
 });
 
 describe("native render adapter", () => {
+  it("uses native tail ellipsis for the folded model without changing its text, font or trigger", async () => {
+    const onSelect = vi.fn();
+    controller = installNative();
+    await mount(foldedModel(onSelect));
+    const label = renderer!.root.findByType("NativeText");
+    expect(label.props).toMatchObject({
+      testID: "combined-model-selector-model-label", children: routedModel,
+      numberOfLines: 1, ellipsizeMode: "tail",
+    });
+    expect(label.props.style).toBe(modelTextStyle);
+    expect(renderer!.root.findAllByType("WordBoundaryLabel")).toHaveLength(0);
+    expect(renderer!.root.findByType("NativeEffortLabel").props.children).toBe("极高");
+    expect(renderer!.root.findByType("NativeModelOption").props).toMatchObject({ label: "Max", value: "Max" });
+    await act(() => renderer!.root.findByType("NativeModelTrigger").props.onPress());
+    expect(onSelect).toHaveBeenCalledOnce();
+    await act(() => controller!.setEnabled(false));
+    expect(renderer!.root.findByType("WordBoundaryLabel").props.text).toBe(routedModel);
+    expect(renderer!.root.findByType("NativeEffortLabel").props.children).toBe("Extra high");
+    await act(() => controller!.setEnabled(true));
+    expect(renderer!.root.findByType("NativeText").props.children).toBe(routedModel);
+    await act(() => controller!.dispose());
+    expect(renderer!.root.findAllByType("NativeText")).toHaveLength(0);
+    expect(renderer!.root.findByType("WordBoundaryLabel").props.text).toBe(routedModel);
+  });
+
+  it("retains whole-word ellipsis outside the recognized folded model control", async () => {
+    controller = installNative();
+    await mount(rawJsx.jsxs("NativeView", { children: [
+      rawJsx.jsx(WordBoundaryModelLabel, {
+        testID: "combined-model-selector-model-label", text: routedModel, style: modelTextStyle,
+      }),
+      rawJsx.jsx(FoldedModel, {
+        provider: "codex", thinkingOptions: levels, modelSelectorProviders: [], onSelect: () => {},
+      }),
+    ] }));
+    expect(renderer!.root.findAllByType("NativeText")).toHaveLength(0);
+    expect(renderer!.root.findAllByType("WordBoundaryLabel")).toHaveLength(2);
+  });
+
   it.each(["claude", "codex"])("translates 0.16 %s item arrays without changing IDs or actions", async (provider) => {
     controller = installNative();
     await mount(itemToolbar({ provider }));

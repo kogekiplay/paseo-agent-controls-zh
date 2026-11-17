@@ -8,7 +8,7 @@ import React, {
   type ReactNode,
 } from "react";
 import JsxRuntime from "react/jsx-runtime";
-import { View, useWindowDimensions, type LayoutChangeEvent } from "react-native";
+import { Text, View, useWindowDimensions, type LayoutChangeEvent } from "react-native";
 import { translatePhrase, type TranslationContext } from "../shared/translations";
 import type { TranslationController } from "./web";
 
@@ -17,6 +17,7 @@ type Factory = (...args: unknown[]) => unknown;
 type Scope = TranslationContext & {
   kind: "controls" | "thinking" | "mode" | "feature" | "none";
   surface?: "toolbar" | "sheet";
+  foldedModel?: boolean;
 };
 type Module = Record<PropertyKey, unknown>;
 const ScopeContext = createContext<Scope>({ kind: "none" });
@@ -42,14 +43,20 @@ function providerOf(props: Props): string | undefined {
   return typeof props.provider === "string" ? props.provider
     : typeof props.selectedProvider === "string" ? props.selectedProvider : undefined;
 }
+function isFoldedModel(props: Props): boolean {
+  return Array.isArray(props.providers) && "thinkingLabel" in props
+    && typeof props.onSelect === "function";
+}
+function isFoldedModelLabel(props: Props): boolean {
+  return props.testID === "combined-model-selector-model-label" && typeof props.text === "string";
+}
 function groupKind(props: Props): Scope["kind"] | null {
   if (!providerOf(props)) return null;
   if (Array.isArray(props.modeOptions) && typeof props.onSelectMode === "function") return "mode";
   if (Array.isArray(props.modelSelectorProviders)
     && ("thinkingOptions" in props || "comboboxThinkingOptions" in props
       || Array.isArray(props.thinkingItems))) return "controls";
-  if (Array.isArray(props.providers) && "thinkingLabel" in props
-    && typeof props.onSelect === "function") return "controls";
+  if (isFoldedModel(props)) return "controls";
   return null;
 }
 function isDesktopToolbar(props: Props): boolean {
@@ -291,6 +298,7 @@ export function installNative(): TranslationController {
       const group = groupKind(props);
       const control = controlKind(props);
       let scope = group ? scoped(group, providerOf(props)) : inherited;
+      if (group && isFoldedModel(props)) scope.foldedModel = true;
       let translated = props;
       if (group) {
         if (active) translated = groupProps(props, scope);
@@ -313,7 +321,14 @@ export function installNative(): TranslationController {
           };
         }
       }
-      const element = group === "controls" && isDesktopToolbar(props)
+      // 0.16's TailEllipsisText drops an entire trailing word when it cannot
+      // fit, wasting a large part of a phone's model slot for routed names.
+      // The native Text uses the same row/font budget and clips at the last
+      // fitting glyph. Keep the exact model string and the surrounding trigger.
+      const { text: modelText, ...labelProps } = props;
+      const element = active && inherited.foldedModel && isFoldedModelLabel(props)
+        ? create(Text, { ...labelProps, numberOfLines: 1, ellipsizeMode: "tail" }, modelText)
+        : group === "controls" && isDesktopToolbar(props)
         ? create(NativeToolbar, { originalType, elementProps: translated, active })
         : create(originalType, translated);
       return create(ScopeContext.Provider, { value: scope }, element) as ReactNode;
@@ -334,7 +349,7 @@ export function installNative(): TranslationController {
           if (control && record(props.ref) && !anchors.has(props.ref)) {
             anchors.set(props.ref, scoped(control));
           }
-          if (groupKind(props) || control
+          if (groupKind(props) || control || isFoldedModelLabel(props)
             || (isMenu(props) && anchors.has(props.anchorRef as object))) args[0] = component(type);
         }
       }

@@ -78,8 +78,17 @@ it.skipIf(!bundlePath).each([
           accessibilityLabel: `Select thinking option (${label})`,
         });
       }
+      function WordBoundaryModelLabel(props: Record<string, unknown>) {
+        return jsx.jsx("WordBoundaryLabel", props);
+      }
+      function FoldedModel(props: Record<string, unknown>) {
+        return jsx.jsx(WordBoundaryModelLabel, {
+          text: "GPT-6.1 Sol · routing group", testID: "combined-model-selector-model-label",
+          style: { fontSize: 17, minWidth: 0, flexShrink: 1 },
+        });
+      }
       await act(() => {
-        app = create(jsx.jsxs("NativeView", { children: ["claude", "codex"].map((provider) =>
+        app = create(jsx.jsxs("NativeView", { children: [...["claude", "codex"].map((provider) =>
           jsx.jsx(Controls, {
             provider, modelSelectorProviders: [],
             ...(version === "0.16" ? {
@@ -101,8 +110,15 @@ it.skipIf(!bundlePath).each([
             modeControl: { modeOptions: [{ id: "full", label: "Full access" }], selectedModeId: "full" },
             features: [{ id: "speed", type: "toggle" }, { id: "plan", type: "toggle" }],
           }, provider),
-        ) }));
+        ), version === "0.16" ? jsx.jsx(FoldedModel, {
+          providers: [], selectedProvider: "codex", thinkingLabel: "Extra high", onSelect: () => {},
+        }) : null] }));
       });
+      if (version === "0.16") {
+        expect(app!.root.findByType("NativeText").props).toMatchObject({
+          children: "GPT-6.1 Sol · routing group", numberOfLines: 1, ellipsizeMode: "tail",
+        });
+      }
       expect(app!.root.findAllByType("NativeControl").map((node) => node.props.value))
         .toEqual(["Ultracode", "Ultra"]);
       expect(app!.root.findAllByType("NativeControl").map((node) => node.props.label))
@@ -127,6 +143,9 @@ it.skipIf(!bundlePath).each([
       });
       expect(settings!.root.findByType("NativePressable").props.disabled).toBe(false);
       await act(() => settings!.root.findByType("NativePressable").props.onPress());
+      if (version === "0.16") {
+        expect(app!.root.findByType("WordBoundaryLabel").props.text).toBe("GPT-6.1 Sol · routing group");
+      }
       expect(app!.root.findAllByType("NativeControl").map((node) => node.props.value))
         .toEqual(["Ultra code", "Ultra code"]);
       expect(app!.root.findAllByType("NativeControl").map((node) => node.props.showToolbarLabel))
