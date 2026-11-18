@@ -15,7 +15,7 @@ import type { TranslationController } from "./web";
 type Props = Record<string, unknown>;
 type Factory = (...args: unknown[]) => unknown;
 type Scope = TranslationContext & {
-  kind: "controls" | "thinking" | "mode" | "feature" | "none";
+  kind: "controls" | "thinking" | "mode" | "speed" | "feature" | "none";
   surface?: "toolbar" | "sheet";
   foldedModel?: boolean;
 };
@@ -23,6 +23,7 @@ type Module = Record<PropertyKey, unknown>;
 const ScopeContext = createContext<Scope>({ kind: "none" });
 const OWNER = Symbol.for("paseo.agent-controls-zh.native.cleanup");
 const THINKING = new Set(["agent-thinking-selector", "agent-controls-thinking"]);
+const SPEED_MENU_MIN_WIDTH = 160;
 const CONTROL_TEXT = ["label", "value", "accessibilityLabel", "title", "placeholder"] as const;
 const NONE: Scope = { kind: "none" };
 
@@ -104,6 +105,7 @@ function controlKind(props: Props): Scope["kind"] | null {
   if (typeof props.testID !== "string") return null;
   if (THINKING.has(props.testID)) return "thinking";
   if (props.testID === "mode-control") return "mode";
+  if (props.testID === "agent-feature-service_tier") return "speed";
   if (props.testID.startsWith("agent-feature-")) return "feature";
   return null;
 }
@@ -319,6 +321,10 @@ export function installNative(): TranslationController {
             options: options(props.options, scope),
             header: header(props.header, scope),
           };
+          if (owner.kind === "speed") {
+            const hostMinWidth = typeof props.desktopMinWidth === "number" ? props.desktopMinWidth : 0;
+            translated.desktopMinWidth = Math.max(SPEED_MENU_MIN_WIDTH, hostMinWidth);
+          }
         }
       }
       // 0.16's TailEllipsisText drops an entire trailing word when it cannot

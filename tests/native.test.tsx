@@ -263,6 +263,43 @@ afterEach(async () => {
 });
 
 describe("native render adapter", () => {
+  it("widens only the anchored Codex speed menu and preserves its selection", async () => {
+    const onSelect = vi.fn();
+    const onOpenChange = vi.fn();
+    const choices = [{ id: "default", label: "Normal" }, { id: "priority", label: "Fast" }];
+    function SpeedMenus({ desktopMinWidth }: { desktopMinWidth?: number }) {
+      const speedAnchor = useRef(null);
+      const otherAnchor = useRef(null);
+      const menuProps = { options: choices, value: "priority", open: true, onSelect, onOpenChange };
+      return rawJsx.jsxs("NativeView", { children: [
+        rawJsx.jsx(Control, { testID: "agent-feature-service_tier", ref: speedAnchor, surface: "toolbar" }),
+        rawJsx.jsx(Menu, { ...menuProps, anchorRef: speedAnchor, desktopMinWidth }),
+        rawJsx.jsx(Control, { testID: "agent-feature-other", ref: otherAnchor, surface: "toolbar" }),
+        rawJsx.jsx(Menu, { ...menuProps, anchorRef: otherAnchor }),
+      ] });
+    }
+    controller = installNative();
+    await mount(rawJsx.jsx(SpeedMenus, {}));
+    const menus = () => renderer!.root.findAllByType(Menu).map((node) => node.props);
+    expect(menus()[0]).toMatchObject({
+      desktopMinWidth: 160,
+      value: "priority",
+      options: [{ id: "default", label: "普通" }, { id: "priority", label: "快速" }],
+      onSelect,
+      onOpenChange,
+    });
+    expect(menus()[1].desktopMinWidth).toBeUndefined();
+    await act(() => renderer!.root.findAllByType("NativeOption")[1].props.onPress());
+    expect(onSelect).toHaveBeenCalledWith("priority");
+    await act(() => renderer!.update(rawJsx.jsx(SpeedMenus, { desktopMinWidth: 220 })));
+    expect(menus()[0].desktopMinWidth).toBe(220);
+    await act(() => controller!.setEnabled(false));
+    expect(menus()[0].options).toBe(choices);
+    expect(menus()[0].desktopMinWidth).toBe(220);
+    await act(() => renderer!.update(rawJsx.jsx(SpeedMenus, {})));
+    expect(menus()[0].desktopMinWidth).toBeUndefined();
+  });
+
   it("uses native tail ellipsis for the folded model without changing its text, font or trigger", async () => {
     const onSelect = vi.fn();
     controller = installNative();
