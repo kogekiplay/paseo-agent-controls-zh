@@ -39,6 +39,8 @@ describe("UI phrase dictionary", () => {
     expect(["Low", "Medium", "High", "Extra high", "Max", "Ultra"].map((text) => translatePhrase(text)))
       .toEqual(["轻度", "中", "高", "极高", "最大", "Ultra"]);
     expect(translatePhrase("Speed: Fast")).toBe("速度：快速");
+    expect(translatePhrase("Ultrafast")).toBe("超快速");
+    expect(translatePhrase("Speed: Ultrafast")).toBe("速度：超快速");
     expect(translatePhrase("Toggle plan mode")).toBe("切换计划模式");
     expect(translatePhrase("Auto-review")).toBe("自动审查");
     expect(translatePhrase("Ultra code")).toBe("Ultra");
@@ -237,6 +239,27 @@ describe("scoped host controls", () => {
     document.body.append(unrelated);
     await settle();
     expect(unrelated.textContent).toBe("Fast");
+  });
+
+  it("keeps a tooltip translated when its trigger unmounts during the exit animation", async () => {
+    controller = install(true);
+    const control = query('[data-testid="agent-feature-speed"]');
+    control.dispatchEvent(new Event("pointerover", { bubbles: true }));
+    const tooltip = document.createElement("div");
+    tooltip.setAttribute("role", "tooltip");
+    tooltip.textContent = "Speed: Fast";
+    document.body.append(tooltip);
+    await settle();
+    expect(tooltip.textContent).toBe("速度：快速");
+
+    control.remove();
+    controller.refresh();
+    await settle();
+    expect(tooltip.textContent).toBe("速度：快速");
+
+    tooltip.firstChild!.nodeValue = "Speed: Fast";
+    await settle();
+    expect(tooltip.textContent).toBe("速度：快速");
   });
 
   it("retranslates React updates and restores the newest English value when disabled", async () => {

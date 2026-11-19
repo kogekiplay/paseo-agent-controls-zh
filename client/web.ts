@@ -70,6 +70,7 @@ const OWNER = Symbol.for("paseo.agent-controls-zh.cleanup");
 const STORAGE = "paseo.agent-controls-zh.enabled";
 const THINKING = `[data-testid="agent-thinking-selector"],[data-testid="agent-controls-thinking"],${FOLDED_THINKING}`;
 interface Change { original: string; translated: string }
+interface TooltipOwnership { context: TranslationContext }
 
 export function install(
   isWeb: boolean,
@@ -92,7 +93,7 @@ export function install(
   let activatedAt = 0;
   let previousMenus = new Set<Element>();
   const ownedMenus = new Map<Element, Element>();
-  const ownedTooltips = new Map<Element, Element>();
+  const ownedTooltips = new Map<Element, TooltipOwnership>();
   const textChanges = new Map<Text, Change>();
   const attributeChanges = new Map<Element, Map<string, Change>>();
   const listeners = new Set<() => void>();
@@ -217,8 +218,8 @@ export function install(
       for (const [menu, owner] of ownedMenus) {
         if (!menu.isConnected || !owner.isConnected) ownedMenus.delete(menu);
       }
-      for (const [tooltip, owner] of ownedTooltips) {
-        if (!tooltip.isConnected || !owner.isConnected) ownedTooltips.delete(tooltip);
+      for (const tooltip of ownedTooltips.keys()) {
+        if (!tooltip.isConnected) ownedTooltips.delete(tooltip);
       }
       if (menuOwner && Date.now() - activatedAt < 1500) {
         for (const menu of Array.from(document.querySelectorAll(MENUS))) {
@@ -227,7 +228,7 @@ export function install(
       }
       if (tooltipOwner) {
         for (const tooltip of Array.from(document.querySelectorAll(TOOLTIP))) {
-          ownedTooltips.set(tooltip, tooltipOwner);
+          ownedTooltips.set(tooltip, { context: contextOf(tooltipOwner) });
         }
       }
       const roots = [
@@ -246,8 +247,10 @@ export function install(
         }
       }
       for (const root of roots) {
-        const owner = ownedMenus.get(root) ?? ownedTooltips.get(root) ?? root;
-        walk(root, contextOf(owner));
+        const tooltipOwnership = ownedTooltips.get(root);
+        const context = tooltipOwnership?.context
+          ?? contextOf(ownedMenus.get(root) ?? root);
+        walk(root, context);
       }
     } finally {
       if (!disposed) observe();
