@@ -39,8 +39,8 @@ describe("UI phrase dictionary", () => {
     expect(["Low", "Medium", "High", "Extra high", "Max", "Ultra"].map((text) => translatePhrase(text)))
       .toEqual(["轻度", "中", "高", "极高", "最大", "Ultra"]);
     expect(translatePhrase("Speed: Fast")).toBe("速度：快速");
-    expect(translatePhrase("Ultrafast")).toBe("超快速");
-    expect(translatePhrase("Speed: Ultrafast")).toBe("速度：超快速");
+    expect(translatePhrase("Ultrafast")).toBe("超级快速");
+    expect(translatePhrase("Speed: Ultrafast")).toBe("速度：超级快速");
     expect(translatePhrase("Toggle plan mode")).toBe("切换计划模式");
     expect(translatePhrase("Auto-review")).toBe("自动审查");
     expect(translatePhrase("Ultra code")).toBe("Ultra");

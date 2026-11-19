@@ -69,7 +69,7 @@ export const phrases: Readonly<Record<string, string>> = {
   "Exit plan mode": "退出计划模式",
   "Speed": "速度",
   "Fast": "快速",
-  "Ultrafast": "超快速",
+  "Ultrafast": "超级快速",
   "Standard": "标准",
   "Normal": "普通",
   "Fast mode": "快速模式",

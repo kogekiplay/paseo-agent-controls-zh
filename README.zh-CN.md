@@ -18,7 +18,7 @@ Claude Code 的译名参考 [javaht/claude-desktop-zh-cn](https://github.com/jav
 适配 Paseo 0.15.4 起的 0.15.x 和 0.16.x。提供桌面版、网页版、原生 iOS 和 Android 适配器。
 
 ```sh
-paseo plugin add git:kogekiplay/paseo-agent-controls-zh --ref v0.2.7
+paseo plugin add git:kogekiplay/paseo-agent-controls-zh --ref v0.2.8
 ```
 
 安装后默认开启。通过命令中心搜索「Agent 控件中文：翻译设置」，或者在插件设置中打开翻译开关。网页端开关保存在当前浏览器；原生手机端开关在本次 App 运行期间有效，重启后默认开启。关闭、停用或卸载后恢复原文。
@@ -35,7 +35,7 @@ paseo plugin add git:kogekiplay/paseo-agent-controls-zh --ref v0.2.7
 
 在 Paseo 0.16 中，原生折叠模型按钮使用系统的单行末尾省略，避免整词舍弃造成过早截断，让长路由模型名在相同空间内显示更多字符。模型原文、字体和外围按钮保持不变；关闭翻译后恢复宿主的整词省略。
 
-Codex 速度选项包括 Normal、Fast 和 Ultrafast，对应翻译为「普通」「快速」和「超快速」。悬停提示在退出动画期间也保持中文。
+Codex 速度选项包括 Normal、Fast 和 Ultrafast，对应翻译为「普通」「快速」和「超级快速」。悬停提示在退出动画期间也保持中文。
 
 ## 数据与适配边界
 

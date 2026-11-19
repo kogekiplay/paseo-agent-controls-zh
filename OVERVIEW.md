@@ -8,7 +8,7 @@ On native toolbars, effort and permission labels keep their width while long mod
 
 On Paseo 0.16, folded native model labels use the platform's single-line tail ellipsis, allowing more of a long routed name to fit before the ellipsis. The model string and font are preserved. Disabling translation restores the host's word-boundary truncation.
 
-Codex speed choices Normal, Fast and Ultrafast display as 普通, 快速 and 超快速. Tooltip text remains translated during its exit animation.
+Codex speed choices Normal, Fast and Ultrafast display as 普通, 快速 and 超级快速. Tooltip text remains translated during its exit animation.
 
 The browser adapter reads text and accessibility labels in the specified controls and their associated overlays, and observes agent IDs/provider metadata through the existing Paseo connection. The native adapter reads the provider and display props already passed to the host controls. Neither adapter reads or translates chat content, changes drafts, model names, option IDs or permission behavior, or calls an external translation service. Disabling or unloading restores original labels.
 
