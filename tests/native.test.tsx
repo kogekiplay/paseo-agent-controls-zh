@@ -263,6 +263,35 @@ afterEach(async () => {
 });
 
 describe("native render adapter", () => {
+  it("renders two host lightning glyphs for the Ultrafast option ID", async () => {
+    function Bolt(props: Record<string, unknown>) {
+      return rawJsx.jsx("NativeBolt", props);
+    }
+    function SpeedToolbar({ featureItems }: { featureItems: { icon: typeof Bolt; value: string }[] }) {
+      return rawJsx.jsx(featureItems[0].icon, { color: "amber", size: 16, strokeWidth: 1.5 });
+    }
+    function toolbar(value: string) {
+      return rawJsx.jsx(SpeedToolbar, {
+        provider: "codex", modelSelectorProviders: [], thinkingItems: [],
+        featureItems: [{ testID: "agent-feature-service_tier", type: "select", value, icon: Bolt }],
+      });
+    }
+    controller = installNative();
+    await mount(toolbar("ultrafast"));
+    const bolts = () => renderer!.root.findAllByType("NativeBolt");
+    expect(bolts()).toHaveLength(2);
+    expect(bolts().map((node) => node.props.color)).toEqual(["amber", "amber"]);
+    expect(renderer!.root.findByType(SpeedToolbar).props.featureItems[0].value).toBe("ultrafast");
+    await act(() => renderer!.update(toolbar("priority")));
+    expect(bolts()).toHaveLength(1);
+    expect(bolts()[0].props.size).toBe(16);
+    await act(() => renderer!.update(toolbar("ultrafast")));
+    expect(bolts()).toHaveLength(2);
+    await act(() => controller!.setEnabled(false));
+    expect(bolts()).toHaveLength(1);
+    expect(bolts()[0].props.size).toBe(16);
+  });
+
   it("widens only the anchored Codex speed menu and preserves its selection", async () => {
     const onSelect = vi.fn();
     const onOpenChange = vi.fn();

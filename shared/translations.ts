@@ -1,3 +1,5 @@
+export const ULTRAFAST_LABEL = "超级快速";
+
 /** Exact UI phrases only. New providers can reuse these without changing their IDs. */
 export const phrases: Readonly<Record<string, string>> = {
   "Low": "轻度",
@@ -69,7 +71,7 @@ export const phrases: Readonly<Record<string, string>> = {
   "Exit plan mode": "退出计划模式",
   "Speed": "速度",
   "Fast": "快速",
-  "Ultrafast": "超级快速",
+  "Ultrafast": ULTRAFAST_LABEL,
   "Standard": "标准",
   "Normal": "普通",
   "Fast mode": "快速模式",

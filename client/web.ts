@@ -1,4 +1,4 @@
-import { translatePhrase, type TranslationContext } from "../shared/translations";
+import { translatePhrase, ULTRAFAST_LABEL, type TranslationContext } from "../shared/translations";
 
 // Browser-only types stay here; neither the plugin nor native clients need lib.dom.
 declare class Node {
@@ -6,6 +6,8 @@ declare class Node {
   parentElement: Element | null;
   childNodes: ArrayLike<Node>;
   isConnected: boolean;
+  cloneNode(deep: boolean): Node;
+  appendChild(child: Node): Node;
 }
 declare class Text extends Node { data: string }
 declare class Element extends Node {
@@ -17,6 +19,7 @@ declare class Element extends Node {
   querySelectorAll(selector: string): ArrayLike<Element>;
   getAttribute(name: string): string | null;
   setAttribute(name: string, value: string): void;
+  remove(): void;
 }
 interface BrowserEvent { target: unknown; key?: string }
 interface Mutation { target: Node; addedNodes: ArrayLike<Node>; removedNodes: ArrayLike<Node> }
@@ -30,6 +33,7 @@ declare class MutationObserver {
 }
 declare const document: {
   body: Element;
+  createElementNS(namespace: string, name: string): Element;
   querySelectorAll(selector: string): ArrayLike<Element>;
   addEventListener(type: string, handler: (event: BrowserEvent) => void, capture: boolean): void;
   removeEventListener(type: string, handler: (event: BrowserEvent) => void, capture: boolean): void;
@@ -62,6 +66,9 @@ const CONTROLS = [
 const FOLDED_THINKING = '[data-testid="combined-model-selector-thinking-label"]';
 const MENUS = '[data-testid="combobox-desktop-container"],[role="dialog"],[aria-modal="true"]';
 const TOOLTIP = '[role="tooltip"]';
+const SPEED_CONTROL = '[data-testid="agent-feature-service_tier"]';
+const SINGLE_BOLT_VIEW_BOX = "0 0 24 24";
+const DOUBLE_BOLT_VIEW_BOX = "0 0 42 24";
 const SURFACES = `${CONTROLS},${FOLDED_THINKING},${MENUS},${TOOLTIP}`;
 const PROVIDER_SIGNALS = '[data-testid^="workspace-tab-agent_"],[data-testid="combined-model-selector"],[data-testid="agent-controls-model"]';
 const EXCLUDED = 'input,textarea,[contenteditable="true"],pre,code,script,style,svg';
@@ -96,6 +103,7 @@ export function install(
   const ownedTooltips = new Map<Element, TooltipOwnership>();
   const textChanges = new Map<Text, Change>();
   const attributeChanges = new Map<Element, Map<string, Change>>();
+  const speedIcons = new Map<Element, { original: Element; second: Element }>();
   const listeners = new Set<() => void>();
 
   function elementOf(node: unknown): Element | null {
@@ -158,6 +166,45 @@ export function install(
     for (const [element, changes] of attributeChanges) restoreAttributes(element, changes);
     textChanges.clear();
     attributeChanges.clear();
+    for (const svg of speedIcons.keys()) restoreSpeedIcon(svg);
+  }
+  function restoreSpeedIcon(svg: Element) {
+    speedIcons.get(svg)?.second.remove();
+    if (svg.getAttribute("viewBox") === DOUBLE_BOLT_VIEW_BOX) {
+      svg.setAttribute("viewBox", SINGLE_BOLT_VIEW_BOX);
+    }
+    speedIcons.delete(svg);
+  }
+  function updateSpeedIcons() {
+    const active = new Set<Element>();
+    for (const control of Array.from(document.querySelectorAll(SPEED_CONTROL))) {
+      const label = translatePhrase(control.getAttribute("aria-label") ?? "").trim();
+      if (label !== `速度：${ULTRAFAST_LABEL}`) continue;
+      const svg = control.querySelector("svg");
+      if (!svg) continue;
+      const existing = speedIcons.get(svg);
+      if (existing && svg.contains(existing.original) && svg.contains(existing.second)
+        && svg.getAttribute("viewBox") === DOUBLE_BOLT_VIEW_BOX) {
+        active.add(svg);
+        continue;
+      }
+      if (existing) restoreSpeedIcon(svg);
+      if (svg.getAttribute("viewBox") !== SINGLE_BOLT_VIEW_BOX) continue;
+      const original = Array.from(svg.childNodes).find(
+        (node): node is Element => node instanceof Element && node.matches("path,polygon"),
+      );
+      if (!original) continue;
+      const second = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      second.setAttribute("transform", "translate(18 0)");
+      second.appendChild(original.cloneNode(true));
+      svg.appendChild(second);
+      svg.setAttribute("viewBox", DOUBLE_BOLT_VIEW_BOX);
+      speedIcons.set(svg, { original, second });
+      active.add(svg);
+    }
+    for (const svg of speedIcons.keys()) {
+      if (!active.has(svg)) restoreSpeedIcon(svg);
+    }
   }
   function translateText(node: Text, context: TranslationContext) {
     const current = node.data;
@@ -252,6 +299,7 @@ export function install(
           ?? contextOf(ownedMenus.get(root) ?? root);
         walk(root, context);
       }
+      updateSpeedIcons();
     } finally {
       if (!disposed) observe();
     }

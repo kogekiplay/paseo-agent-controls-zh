@@ -145,14 +145,37 @@ function mode(value: unknown, provider?: string): unknown {
   if (!record(value) || !Array.isArray(value.modeOptions)) return value;
   return { ...value, modeOptions: options(value.modeOptions, { provider }) };
 }
+type SpeedIconProps = { size?: number; color?: string; strokeWidth?: number };
+type SpeedIcon = ComponentType<SpeedIconProps>;
+const doubleBoltIcons = new WeakMap<SpeedIcon, SpeedIcon>();
+
+function doubleBoltIcon(Icon: SpeedIcon): SpeedIcon {
+  const existing = doubleBoltIcons.get(Icon);
+  if (existing) return existing;
+  function DoubleBolt({ size = 24, ...props }: SpeedIconProps) {
+    const boltSize = size * 24 / 42;
+    const top = (size - boltSize) / 2;
+    return (
+      <View accessible={false} pointerEvents="none" style={{ width: size, height: size }}>
+        <View style={{ position: "absolute", left: 0, top }}><Icon {...props} size={boltSize} /></View>
+        <View style={{ position: "absolute", right: 0, top }}><Icon {...props} size={boltSize} /></View>
+      </View>
+    );
+  }
+  doubleBoltIcons.set(Icon, DoubleBolt);
+  return DoubleBolt;
+}
 function composerItem(value: unknown, provider?: string): unknown {
   if (!record(value) || !["select", "toggle", "action"].includes(String(value.type))) return value;
   const kind = controlKind(value);
   if (!kind) return value;
   const scope = scoped(kind, provider);
+  const ultrafast = kind === "speed" && value.type === "select" && value.value === "ultrafast";
   return {
     ...displayProps(value, scope),
     tooltip: text(value.tooltip, scope),
+    ...(ultrafast && (typeof value.icon === "function" || record(value.icon))
+      ? { icon: doubleBoltIcon(value.icon as SpeedIcon) } : {}),
     ...(value.type === "select" ? {
       // `value` is an option ID in 0.16, never display text.
       value: value.value,

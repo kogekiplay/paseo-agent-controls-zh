@@ -20,7 +20,7 @@ Claude Code's effort names follow the effort-menu mappings in [javaht/claude-des
 Requires Paseo 0.15.4 or later in the 0.15.x or 0.16.x series. Desktop, browser, native iOS and native Android clients have adapters.
 
 ```sh
-paseo plugin add git:kogekiplay/paseo-agent-controls-zh --ref v0.2.8
+paseo plugin add git:kogekiplay/paseo-agent-controls-zh --ref v0.2.9
 ```
 
 Translation is enabled on installation. Open the Command Center and search for **Agent 控件中文：翻译设置**, or open this plugin's settings. The browser saves the switch locally. On native clients the switch lasts for the current app run and starts enabled after relaunch. Disabling or unloading restores the original labels.
@@ -37,7 +37,7 @@ Native toolbars reserve the width of effort and permission labels, letting long 
 
 On Paseo 0.16, the folded native model trigger uses the platform's single-line tail ellipsis instead of dropping whole trailing words. Long routed model names can show more characters in the same space. The model string, font and surrounding button remain unchanged; disabling translation restores the host's word-boundary ellipsis.
 
-Codex speed choices include Normal, Fast and Ultrafast. Their translated labels are 普通, 快速 and 超级快速. Tooltip text stays translated while the hover surface exits.
+Codex speed choices include Normal, Fast and Ultrafast. Their translated labels are 普通, 快速 and 超级快速. In the Paseo 0.16 composer toolbar, Ultrafast displays two lightning bolts in the speed button. Tooltip text stays translated while the hover surface exits.
 
 ## Data and compatibility
 

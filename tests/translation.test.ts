@@ -68,6 +68,35 @@ describe("UI phrase dictionary", () => {
 });
 
 describe("scoped host controls", () => {
+  it("shows two bolts only for the active Ultrafast speed trigger and restores its original SVG", async () => {
+    const speed = query('[data-testid="agent-feature-speed"]');
+    speed.setAttribute("data-testid", "agent-feature-service_tier");
+    speed.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16"><path d="M4 12l12-9-4 9h8L8 21l4-9z"/></svg>';
+    const svg = speed.querySelector("svg")!;
+    const original = svg.firstElementChild;
+    const setSpeed = (label: string) => speed.setAttribute("aria-label", `Speed: ${label}`);
+    controller = install(true);
+    expect(svg.querySelectorAll("path")).toHaveLength(1);
+    setSpeed("Ultrafast");
+    await settle();
+    expect(svg.querySelectorAll("path")).toHaveLength(2);
+    expect(svg.getAttribute("width")).toBe("16");
+    expect(svg.firstElementChild).toBe(original);
+    expect(speed.getAttribute("aria-label")).toBe("速度：超级快速");
+    await settle();
+    expect(svg.querySelectorAll("path")).toHaveLength(2);
+    setSpeed("Fast");
+    await settle();
+    expect(svg.querySelectorAll("path")).toHaveLength(1);
+    expect(svg.getAttribute("viewBox")).toBe("0 0 24 24");
+    setSpeed("Ultrafast");
+    await settle();
+    controller.setEnabled(false);
+    expect(svg.firstElementChild).toBe(original);
+    expect(svg.querySelectorAll("path")).toHaveLength(1);
+    expect(speed.getAttribute("aria-label")).toBe("Speed: Ultrafast");
+  });
+
   it("translates 0.16's folded thinking label separately from the model name", async () => {
     query('[data-testid="combined-model-selector"]').innerHTML = `
       <span data-testid="combined-model-selector-model-label">Opus Max</span>
