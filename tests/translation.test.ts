@@ -307,6 +307,45 @@ describe("scoped host controls", () => {
     expect(tooltip.textContent).toBe("速度：快速");
   });
 
+  it.each([
+    ["Fast", "速度：快速"],
+    ["Ultrafast", "速度：超级快速"],
+  ])("keeps %s translated when the exit animation reparents its contents", async (label, translated) => {
+    controller = install(true);
+    const control = query('[data-testid="agent-feature-speed"]');
+    control.dispatchEvent(new Event("pointerover", { bubbles: true }));
+    const tooltip = document.createElement("div");
+    tooltip.setAttribute("role", "tooltip");
+    const content = document.createElement("span");
+    content.textContent = `Speed: ${label}`;
+    tooltip.append(content);
+    document.body.append(tooltip);
+    await settle();
+    expect(tooltip.textContent).toBe(translated);
+
+    query("#unrelated").dispatchEvent(new Event("pointerover", { bubbles: true }));
+    await settle();
+    // Reanimated shallow-clones the tooltip and moves its actual children.
+    const exiting = tooltip.cloneNode(false) as HTMLElement;
+    exiting.append(content);
+    document.body.append(exiting);
+    tooltip.remove();
+    await settle();
+    expect(exiting.textContent).toBe(translated);
+
+    content.textContent = `Speed: ${label}`;
+    const unrelated = document.createElement("div");
+    unrelated.setAttribute("role", "tooltip");
+    unrelated.textContent = "Fast";
+    document.body.append(unrelated);
+    await settle();
+    expect(exiting.textContent).toBe(translated);
+    expect(unrelated.textContent).toBe("Fast");
+    controller.setEnabled(false);
+    expect(exiting.textContent).toBe(`Speed: ${label}`);
+    expect(exiting.hasAttribute("data-paseo-agent-controls-zh-tooltip")).toBe(false);
+  });
+
   it("retranslates React updates and restores the newest English value when disabled", async () => {
     controller = install(true);
     const control = query('[data-testid="agent-thinking-selector"]');

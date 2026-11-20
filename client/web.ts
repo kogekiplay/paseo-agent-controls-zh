@@ -20,6 +20,7 @@ declare class Element extends Node {
   querySelectorAll(selector: string): ArrayLike<Element>;
   getAttribute(name: string): string | null;
   setAttribute(name: string, value: string): void;
+  removeAttribute(name: string): void;
   remove(): void;
 }
 interface BrowserEvent { target: unknown; key?: string }
@@ -66,6 +67,7 @@ const CONTROLS = [
 const FOLDED_THINKING = '[data-testid="combined-model-selector-thinking-label"]';
 const MENUS = '[data-testid="combobox-desktop-container"],[role="dialog"],[aria-modal="true"]';
 const TOOLTIP = '[role="tooltip"]';
+const TOOLTIP_OWNER = "data-paseo-agent-controls-zh-tooltip";
 const SPEED_CONTROL = '[data-testid="agent-feature-service_tier"]';
 const SINGLE_BOLT_VIEW_BOX = `0 0 ${BOLT_SIZE} ${BOLT_SIZE}`;
 const DOUBLE_BOLT_VIEW_BOX = `${-BOLT_OFFSET} 0 ${BOLT_SIZE + BOLT_OFFSET} ${BOLT_SIZE}`;
@@ -77,7 +79,7 @@ const OWNER = Symbol.for("paseo.agent-controls-zh.cleanup");
 const STORAGE = "paseo.agent-controls-zh.enabled";
 const THINKING = `[data-testid="agent-thinking-selector"],[data-testid="agent-controls-thinking"],${FOLDED_THINKING}`;
 interface Change { original: string; translated: string }
-interface TooltipOwnership { context: TranslationContext }
+interface TooltipOwnership { id: string; trigger: Element; context: TranslationContext }
 
 export function install(
   isWeb: boolean,
@@ -97,6 +99,7 @@ export function install(
   let scheduled = false;
   let menuOwner: Element | null = null;
   let tooltipOwner: Element | null = null;
+  let nextTooltipId = 0;
   let activatedAt = 0;
   let previousMenus = new Set<Element>();
   const ownedMenus = new Map<Element, Element>();
@@ -275,6 +278,37 @@ export function install(
     }
     for (const child of Array.from(node.childNodes)) walk(child, context);
   }
+  function updateTooltips() {
+    const live = new Set(Array.from(document.querySelectorAll(TOOLTIP)));
+    const byId = new Map(Array.from(ownedTooltips.values(), (owner) => [owner.id, owner]));
+    for (const tooltip of live) {
+      const id = tooltip.getAttribute(TOOLTIP_OWNER);
+      // Reanimated shallow-clones the tooltip and moves its children during
+      // fade-out. The cloned attribute identifies the original tooltip even
+      // after the pointer leaves and its trigger or text nodes are replaced.
+      let owner = id === null ? undefined : byId.get(id);
+      if (!owner && tooltipOwner) {
+        owner = { id: String(++nextTooltipId), trigger: tooltipOwner, context: contextOf(tooltipOwner) };
+        tooltip.setAttribute(TOOLTIP_OWNER, owner.id);
+      }
+      if (owner) {
+        if (owner.trigger.isConnected) owner.context = contextOf(owner.trigger);
+        ownedTooltips.set(tooltip, owner);
+      }
+    }
+    for (const tooltip of ownedTooltips.keys()) {
+      if (!live.has(tooltip)) {
+        tooltip.removeAttribute(TOOLTIP_OWNER);
+        ownedTooltips.delete(tooltip);
+      }
+    }
+  }
+  function clearTooltips() {
+    for (const tooltip of [
+      ...ownedTooltips.keys(), ...Array.from(document.querySelectorAll(`[${TOOLTIP_OWNER}]`)),
+    ]) tooltip.removeAttribute(TOOLTIP_OWNER);
+    ownedTooltips.clear();
+  }
   function refresh() {
     // Preserve React-owned nodes and handlers, and avoid observing our own edits.
     observer.disconnect();
@@ -285,19 +319,12 @@ export function install(
       for (const [menu, owner] of ownedMenus) {
         if (!menu.isConnected || !owner.isConnected) ownedMenus.delete(menu);
       }
-      for (const tooltip of ownedTooltips.keys()) {
-        if (!tooltip.isConnected) ownedTooltips.delete(tooltip);
-      }
       if (menuOwner && Date.now() - activatedAt < 1500) {
         for (const menu of Array.from(document.querySelectorAll(MENUS))) {
           if (!previousMenus.has(menu)) ownedMenus.set(menu, menuOwner);
         }
       }
-      if (tooltipOwner) {
-        for (const tooltip of Array.from(document.querySelectorAll(TOOLTIP))) {
-          ownedTooltips.set(tooltip, { context: contextOf(tooltipOwner) });
-        }
-      }
+      updateTooltips();
       const roots = [
         ...Array.from(document.querySelectorAll(`${CONTROLS},${FOLDED_THINKING}`)),
         ...ownedMenus.keys(),
@@ -367,7 +394,7 @@ export function install(
     restoreAll();
     listeners.clear();
     ownedMenus.clear();
-    ownedTooltips.clear();
+    clearTooltips();
     if (Reflect.get(document, OWNER) === dispose) Reflect.deleteProperty(document, OWNER);
   }
   Reflect.set(document, OWNER, dispose);
@@ -384,7 +411,7 @@ export function install(
       menuOwner = null;
       tooltipOwner = null;
       ownedMenus.clear();
-      ownedTooltips.clear();
+      clearTooltips();
       refresh();
       for (const listener of listeners) listener();
     },
