@@ -1,5 +1,5 @@
 import { translatePhrase, ULTRAFAST_LABEL, type TranslationContext } from "../shared/translations";
-import { BOLT_SIZE, SECOND_BOLT_X, SECOND_BOLT_Y } from "../shared/speed-icon";
+import { BOLT_SIZE, BOLT_OFFSET } from "../shared/speed-icon";
 
 // Browser-only types stay here; neither the plugin nor native clients need lib.dom.
 declare class Node {
@@ -22,13 +22,6 @@ declare class Element extends Node {
   setAttribute(name: string, value: string): void;
   remove(): void;
 }
-declare class SVGElement extends Element {
-  style: {
-    getPropertyValue(name: string): string;
-    getPropertyPriority(name: string): string;
-    setProperty(name: string, value: string, priority?: string): void;
-  };
-}
 interface BrowserEvent { target: unknown; key?: string }
 interface Mutation { target: Node; addedNodes: ArrayLike<Node>; removedNodes: ArrayLike<Node> }
 declare class MutationObserver {
@@ -41,7 +34,6 @@ declare class MutationObserver {
 }
 declare const document: {
   body: Element;
-  createElementNS(namespace: string, name: string): Element;
   querySelectorAll(selector: string): ArrayLike<Element>;
   addEventListener(type: string, handler: (event: BrowserEvent) => void, capture: boolean): void;
   removeEventListener(type: string, handler: (event: BrowserEvent) => void, capture: boolean): void;
@@ -76,7 +68,7 @@ const MENUS = '[data-testid="combobox-desktop-container"],[role="dialog"],[aria-
 const TOOLTIP = '[role="tooltip"]';
 const SPEED_CONTROL = '[data-testid="agent-feature-service_tier"]';
 const SINGLE_BOLT_VIEW_BOX = `0 0 ${BOLT_SIZE} ${BOLT_SIZE}`;
-const DOUBLE_BOLT_VIEW_BOX = `0 0 ${BOLT_SIZE + SECOND_BOLT_X} ${BOLT_SIZE + SECOND_BOLT_Y}`;
+const DOUBLE_BOLT_VIEW_BOX = `${-BOLT_OFFSET} 0 ${BOLT_SIZE + BOLT_OFFSET} ${BOLT_SIZE}`;
 const SURFACES = `${CONTROLS},${FOLDED_THINKING},${MENUS},${TOOLTIP}`;
 const PROVIDER_SIGNALS = '[data-testid^="workspace-tab-agent_"],[data-testid="combined-model-selector"],[data-testid="agent-controls-model"]';
 const EXCLUDED = 'input,textarea,[contenteditable="true"],pre,code,script,style,svg';
@@ -111,9 +103,8 @@ export function install(
   const ownedTooltips = new Map<Element, TooltipOwnership>();
   const textChanges = new Map<Text, Change>();
   const attributeChanges = new Map<Element, Map<string, Change>>();
-  const speedIcons = new Map<SVGElement, {
-    original: Element; second: Element; width: Change; height: Change;
-    flexShrink: string; flexShrinkPriority: string;
+  const speedIcons = new Map<Element, {
+    original: Element; front: Element; width: Change; height: string;
   }>();
   const listeners = new Set<() => void>();
 
@@ -159,7 +150,7 @@ export function install(
   function observe() {
     observer.observe(document.body, {
       subtree: true, childList: true, characterData: true, attributes: true,
-      attributeFilter: [...ATTRIBUTES, "data-testid", "aria-selected", "width", "height", "viewBox"],
+      attributeFilter: [...ATTRIBUTES, "data-testid", "aria-selected", "width", "height", "viewBox", "stroke"],
     });
   }
   function restoreText(node: Text, change: Change) {
@@ -179,68 +170,56 @@ export function install(
     attributeChanges.clear();
     for (const svg of speedIcons.keys()) restoreSpeedIcon(svg);
   }
-  function restoreSpeedIcon(svg: SVGElement) {
+  function restoreSpeedIcon(svg: Element) {
     const change = speedIcons.get(svg)!;
-    change.second.remove();
+    change.front.remove();
     if (svg.getAttribute("viewBox") === DOUBLE_BOLT_VIEW_BOX) {
       svg.setAttribute("viewBox", SINGLE_BOLT_VIEW_BOX);
     }
     if (svg.getAttribute("width") === change.width.translated) {
       svg.setAttribute("width", change.width.original);
     }
-    if (svg.getAttribute("height") === change.height.translated) {
-      svg.setAttribute("height", change.height.original);
-    }
-    if (svg.style.getPropertyValue("flex-shrink") === "0"
-      && !svg.style.getPropertyPriority("flex-shrink")) {
-      svg.style.setProperty("flex-shrink", change.flexShrink, change.flexShrinkPriority);
-    }
     speedIcons.delete(svg);
   }
+  function fillFrontBolt(front: Element, original: Element, svg: Element) {
+    const color = original.getAttribute("stroke") ?? svg.getAttribute("stroke") ?? "currentColor";
+    if (front.getAttribute("fill") !== color) front.setAttribute("fill", color);
+    if (front.getAttribute("stroke") !== color) front.setAttribute("stroke", color);
+  }
   function updateSpeedIcons() {
-    const active = new Set<SVGElement>();
+    const active = new Set<Element>();
     for (const control of Array.from(document.querySelectorAll(SPEED_CONTROL))) {
       const label = translatePhrase(control.getAttribute("aria-label") ?? "").trim();
       if (label !== `速度：${ULTRAFAST_LABEL}`) continue;
       const svg = control.querySelector("svg");
-      if (!(svg instanceof SVGElement)) continue;
+      if (!svg) continue;
       const height = svg.getAttribute("height");
       const existing = speedIcons.get(svg);
-      if (existing && svg.contains(existing.original) && svg.contains(existing.second)
-        && height === existing.height.translated && svg.getAttribute("width") === existing.width.translated
+      if (existing && svg.contains(existing.original) && svg.contains(existing.front)
+        && height === existing.height && svg.getAttribute("width") === existing.width.translated
         && svg.getAttribute("viewBox") === DOUBLE_BOLT_VIEW_BOX) {
+        fillFrontBolt(existing.front, existing.original, svg);
         active.add(svg);
         continue;
       }
       if (existing) restoreSpeedIcon(svg);
       if (svg.getAttribute("viewBox") !== SINGLE_BOLT_VIEW_BOX) continue;
       const width = svg.getAttribute("width");
-      const originalHeight = svg.getAttribute("height");
-      const size = Number(originalHeight);
-      if (!width || !originalHeight || !Number.isFinite(size) || size <= 0 || Number(width) !== size) continue;
+      const size = Number(height);
+      if (!width || !height || !Number.isFinite(size) || size <= 0 || Number(width) !== size) continue;
       const original = Array.from(svg.childNodes).find(
         (node): node is Element => node instanceof Element && node.matches("path,polygon"),
       );
       if (!original) continue;
       // Scale the viewport with the viewBox so each copy keeps the host glyph's size.
-      const wideWidth = String(size * (BOLT_SIZE + SECOND_BOLT_X) / BOLT_SIZE);
-      const tallHeight = String(size * (BOLT_SIZE + SECOND_BOLT_Y) / BOLT_SIZE);
-      const second = document.createElementNS("http://www.w3.org/2000/svg", "g");
-      second.setAttribute("transform", `translate(${SECOND_BOLT_X} ${SECOND_BOLT_Y})`);
-      second.appendChild(original.cloneNode(true));
-      svg.appendChild(second);
+      const wideWidth = String(size * (BOLT_SIZE + BOLT_OFFSET) / BOLT_SIZE);
+      const front = original.cloneNode(true) as Element;
+      front.setAttribute("transform", `translate(${-BOLT_OFFSET} 0)`);
+      fillFrontBolt(front, original, svg);
+      svg.appendChild(front);
       svg.setAttribute("viewBox", DOUBLE_BOLT_VIEW_BOX);
       svg.setAttribute("width", wideWidth);
-      svg.setAttribute("height", tallHeight);
-      speedIcons.set(svg, {
-        original, second, width: { original: width, translated: wideWidth },
-        height: { original: originalHeight, translated: tallHeight },
-        flexShrink: svg.style.getPropertyValue("flex-shrink"),
-        flexShrinkPriority: svg.style.getPropertyPriority("flex-shrink"),
-      });
-      // The host's flex slot is one glyph tall. Let the two staggered glyphs
-      // use its padding so the viewport stays proportional to the viewBox.
-      svg.style.setProperty("flex-shrink", "0");
+      speedIcons.set(svg, { original, front, width: { original: width, translated: wideWidth }, height });
       active.add(svg);
     }
     for (const svg of speedIcons.keys()) {

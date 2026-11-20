@@ -20,7 +20,7 @@ Claude Code's effort names follow the effort-menu mappings in [javaht/claude-des
 Requires Paseo 0.15.4 or later in the 0.15.x or 0.16.x series. Desktop, browser, native iOS and native Android clients have adapters.
 
 ```sh
-paseo plugin add git:kogekiplay/paseo-agent-controls-zh --ref v0.2.11
+paseo plugin add git:kogekiplay/paseo-agent-controls-zh --ref v0.2.12
 ```
 
 Translation is enabled on installation. Open the Command Center and search for **Agent 控件中文：翻译设置**, or open this plugin's settings. The browser saves the switch locally. On native clients the switch lasts for the current app run and starts enabled after relaunch. Disabling or unloading restores the original labels.

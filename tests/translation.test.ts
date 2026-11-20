@@ -71,7 +71,7 @@ describe("scoped host controls", () => {
   it("shows two bolts only for the active Ultrafast speed trigger and restores its original SVG", async () => {
     const speed = query('[data-testid="agent-feature-speed"]');
     speed.setAttribute("data-testid", "agent-feature-service_tier");
-    speed.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" style="flex-shrink: 1"><path d="M4 12l12-9-4 9h8L8 21l4-9z"/></svg>';
+    speed.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" stroke="orange"><path fill="none" d="M4 12l12-9-4 9h8L8 21l4-9z"/></svg>';
     const svg = speed.querySelector("svg")!;
     const original = svg.firstElementChild;
     const setSpeed = (label: string) => speed.setAttribute("aria-label", `Speed: ${label}`);
@@ -80,19 +80,22 @@ describe("scoped host controls", () => {
     setSpeed("Ultrafast");
     await settle();
     expect(svg.querySelectorAll("path")).toHaveLength(2);
-    expect(svg.getAttribute("width")).toBe("26");
-    expect(svg.getAttribute("height")).toBe("18");
-    expect(svg.style.flexShrink).toBe("0");
-    expect(svg.querySelector("g")?.getAttribute("transform")).toBe("translate(15 3)");
+    expect(Number(svg.getAttribute("width"))).toBeCloseTo(20.667);
+    expect(svg.getAttribute("height")).toBe("16");
+    expect(original?.getAttribute("fill")).toBe("none");
+    expect(svg.lastElementChild?.getAttribute("transform")).toBe("translate(-7 0)");
+    expect(svg.lastElementChild?.getAttribute("fill")).toBe("orange");
     expect(svg.firstElementChild).toBe(original);
     expect(speed.getAttribute("aria-label")).toBe("速度：超级快速");
+    svg.setAttribute("stroke", "gold");
     await settle();
     expect(svg.querySelectorAll("path")).toHaveLength(2);
+    expect(svg.lastElementChild?.getAttribute("fill")).toBe("gold");
     svg.setAttribute("width", "20");
     svg.setAttribute("height", "20");
     await settle();
-    expect(svg.getAttribute("width")).toBe("32.5");
-    expect(svg.getAttribute("height")).toBe("22.5");
+    expect(Number(svg.getAttribute("width"))).toBeCloseTo(25.833);
+    expect(svg.getAttribute("height")).toBe("20");
     expect(svg.querySelectorAll("path")).toHaveLength(2);
     setSpeed("Fast");
     await settle();
@@ -100,7 +103,6 @@ describe("scoped host controls", () => {
     expect(svg.getAttribute("viewBox")).toBe("0 0 24 24");
     expect(svg.getAttribute("width")).toBe("20");
     expect(svg.getAttribute("height")).toBe("20");
-    expect(svg.style.flexShrink).toBe("1");
     setSpeed("Ultrafast");
     await settle();
     controller.setEnabled(false);

@@ -1,5 +1,4 @@
-// Lucide's Zap uses a 24-unit square. The second bolt sits slightly lower so
-// the two contours can meet without losing either silhouette.
+// Lucide's Zap uses a 24-unit square. Shift the outline just far enough
+// right to show its tips behind the filled bolt.
 export const BOLT_SIZE = 24;
-export const SECOND_BOLT_X = 15;
-export const SECOND_BOLT_Y = 3;
+export const BOLT_OFFSET = 7;

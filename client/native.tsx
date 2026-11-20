@@ -10,7 +10,7 @@ import React, {
 import JsxRuntime from "react/jsx-runtime";
 import { Text, View, useWindowDimensions, type LayoutChangeEvent } from "react-native";
 import { translatePhrase, type TranslationContext } from "../shared/translations";
-import { BOLT_SIZE, SECOND_BOLT_X, SECOND_BOLT_Y } from "../shared/speed-icon";
+import { BOLT_SIZE, BOLT_OFFSET } from "../shared/speed-icon";
 import type { TranslationController } from "./web";
 
 type Props = Record<string, unknown>;
@@ -146,20 +146,21 @@ function mode(value: unknown, provider?: string): unknown {
   if (!record(value) || !Array.isArray(value.modeOptions)) return value;
   return { ...value, modeOptions: options(value.modeOptions, { provider }) };
 }
-type SpeedIconProps = { size?: number; color?: string; strokeWidth?: number };
+type SpeedIconProps = { size?: number; color?: string; strokeWidth?: number; fill?: string };
 type SpeedIcon = ComponentType<SpeedIconProps>;
 const doubleBoltIcons = new WeakMap<SpeedIcon, SpeedIcon>();
 
 function doubleBoltIcon(Icon: SpeedIcon): SpeedIcon {
   const existing = doubleBoltIcons.get(Icon);
   if (existing) return existing;
-  function DoubleBolt({ size = 24, ...props }: SpeedIconProps) {
-    const x = size * SECOND_BOLT_X / BOLT_SIZE;
-    const y = size * SECOND_BOLT_Y / BOLT_SIZE;
+  function DoubleBolt({ size = BOLT_SIZE, ...props }: SpeedIconProps) {
+    const offset = size * BOLT_OFFSET / BOLT_SIZE;
     return (
-      <View accessible={false} pointerEvents="none" style={{ width: size + x, height: size + y, flexShrink: 0 }}>
-        <View style={{ position: "absolute", left: 0, top: 0 }}><Icon {...props} size={size} /></View>
-        <View style={{ position: "absolute", left: x, top: y }}><Icon {...props} size={size} /></View>
+      <View accessible={false} pointerEvents="none" style={{ width: size + offset, height: size, flexShrink: 0 }}>
+        <View style={{ position: "absolute", left: offset, top: 0 }}><Icon {...props} size={size} /></View>
+        <View style={{ position: "absolute", left: 0, top: 0 }}>
+          <Icon {...props} size={size} fill={props.color ?? "currentColor"} />
+        </View>
       </View>
     );
   }
