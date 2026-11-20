@@ -153,12 +153,10 @@ function doubleBoltIcon(Icon: SpeedIcon): SpeedIcon {
   const existing = doubleBoltIcons.get(Icon);
   if (existing) return existing;
   function DoubleBolt({ size = 24, ...props }: SpeedIconProps) {
-    const boltSize = size * 24 / 42;
-    const top = (size - boltSize) / 2;
     return (
-      <View accessible={false} pointerEvents="none" style={{ width: size, height: size }}>
-        <View style={{ position: "absolute", left: 0, top }}><Icon {...props} size={boltSize} /></View>
-        <View style={{ position: "absolute", right: 0, top }}><Icon {...props} size={boltSize} /></View>
+      <View accessible={false} pointerEvents="none" style={{ width: size * 42 / 24, height: size, flexShrink: 0 }}>
+        <View style={{ position: "absolute", left: 0, top: 0 }}><Icon {...props} size={size} /></View>
+        <View style={{ position: "absolute", right: 0, top: 0 }}><Icon {...props} size={size} /></View>
       </View>
     );
   }

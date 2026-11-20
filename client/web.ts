@@ -103,7 +103,7 @@ export function install(
   const ownedTooltips = new Map<Element, TooltipOwnership>();
   const textChanges = new Map<Text, Change>();
   const attributeChanges = new Map<Element, Map<string, Change>>();
-  const speedIcons = new Map<Element, { original: Element; second: Element }>();
+  const speedIcons = new Map<Element, { original: Element; second: Element; width: Change; height: string }>();
   const listeners = new Set<() => void>();
 
   function elementOf(node: unknown): Element | null {
@@ -148,7 +148,7 @@ export function install(
   function observe() {
     observer.observe(document.body, {
       subtree: true, childList: true, characterData: true, attributes: true,
-      attributeFilter: [...ATTRIBUTES, "data-testid", "aria-selected"],
+      attributeFilter: [...ATTRIBUTES, "data-testid", "aria-selected", "width", "height", "viewBox"],
     });
   }
   function restoreText(node: Text, change: Change) {
@@ -169,9 +169,13 @@ export function install(
     for (const svg of speedIcons.keys()) restoreSpeedIcon(svg);
   }
   function restoreSpeedIcon(svg: Element) {
-    speedIcons.get(svg)?.second.remove();
+    const change = speedIcons.get(svg)!;
+    change.second.remove();
     if (svg.getAttribute("viewBox") === DOUBLE_BOLT_VIEW_BOX) {
       svg.setAttribute("viewBox", SINGLE_BOLT_VIEW_BOX);
+    }
+    if (svg.getAttribute("width") === change.width.translated) {
+      svg.setAttribute("width", change.width.original);
     }
     speedIcons.delete(svg);
   }
@@ -182,24 +186,32 @@ export function install(
       if (label !== `速度：${ULTRAFAST_LABEL}`) continue;
       const svg = control.querySelector("svg");
       if (!svg) continue;
+      const height = svg.getAttribute("height");
       const existing = speedIcons.get(svg);
       if (existing && svg.contains(existing.original) && svg.contains(existing.second)
+        && height === existing.height && svg.getAttribute("width") === existing.width.translated
         && svg.getAttribute("viewBox") === DOUBLE_BOLT_VIEW_BOX) {
         active.add(svg);
         continue;
       }
       if (existing) restoreSpeedIcon(svg);
       if (svg.getAttribute("viewBox") !== SINGLE_BOLT_VIEW_BOX) continue;
+      const width = svg.getAttribute("width");
+      const size = Number(height);
+      if (!width || !height || !Number.isFinite(size) || size <= 0 || Number(width) !== size) continue;
       const original = Array.from(svg.childNodes).find(
         (node): node is Element => node instanceof Element && node.matches("path,polygon"),
       );
       if (!original) continue;
+      // Scale the viewport with the viewBox so each copy keeps the host glyph's size.
+      const wideWidth = String(size * 42 / 24);
       const second = document.createElementNS("http://www.w3.org/2000/svg", "g");
       second.setAttribute("transform", "translate(18 0)");
       second.appendChild(original.cloneNode(true));
       svg.appendChild(second);
       svg.setAttribute("viewBox", DOUBLE_BOLT_VIEW_BOX);
-      speedIcons.set(svg, { original, second });
+      svg.setAttribute("width", wideWidth);
+      speedIcons.set(svg, { original, second, width: { original: width, translated: wideWidth }, height });
       active.add(svg);
     }
     for (const svg of speedIcons.keys()) {

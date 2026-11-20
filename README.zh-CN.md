@@ -18,7 +18,7 @@ Claude Code 的译名参考 [javaht/claude-desktop-zh-cn](https://github.com/jav
 适配 Paseo 0.15.4 起的 0.15.x 和 0.16.x。提供桌面版、网页版、原生 iOS 和 Android 适配器。
 
 ```sh
-paseo plugin add git:kogekiplay/paseo-agent-controls-zh --ref v0.2.9
+paseo plugin add git:kogekiplay/paseo-agent-controls-zh --ref v0.2.10
 ```
 
 安装后默认开启。通过命令中心搜索「Agent 控件中文：翻译设置」，或者在插件设置中打开翻译开关。网页端开关保存在当前浏览器；原生手机端开关在本次 App 运行期间有效，重启后默认开启。关闭、停用或卸载后恢复原文。
