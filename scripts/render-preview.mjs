@@ -21,13 +21,13 @@ const files = new Map([["/", {
   type: "text/html; charset=utf-8",
   content: readFileSync(join(root, "tests/preview.html"), "utf8"),
 }]]);
-for (const name of ["client/web.ts", "shared/translations.ts"]) {
+for (const name of ["client/web.ts", "shared/translations.ts", "shared/speed-icon.ts"]) {
   const { outputText } = ts.transpileModule(readFileSync(join(root, name), "utf8"), {
     compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext },
   });
   files.set("/" + name.replace(/\.ts$/, ".js"), {
     type: "application/javascript",
-    content: outputText.replace("../shared/translations\"", "../shared/translations.js\""),
+    content: outputText.replace(/"\.\.\/shared\/(translations|speed-icon)"/g, '"../shared/$1.js"'),
   });
 }
 const server = createServer((request, response) => {

@@ -10,6 +10,7 @@ import React, {
 import JsxRuntime from "react/jsx-runtime";
 import { Text, View, useWindowDimensions, type LayoutChangeEvent } from "react-native";
 import { translatePhrase, type TranslationContext } from "../shared/translations";
+import { BOLT_SIZE, SECOND_BOLT_X, SECOND_BOLT_Y } from "../shared/speed-icon";
 import type { TranslationController } from "./web";
 
 type Props = Record<string, unknown>;
@@ -153,10 +154,12 @@ function doubleBoltIcon(Icon: SpeedIcon): SpeedIcon {
   const existing = doubleBoltIcons.get(Icon);
   if (existing) return existing;
   function DoubleBolt({ size = 24, ...props }: SpeedIconProps) {
+    const x = size * SECOND_BOLT_X / BOLT_SIZE;
+    const y = size * SECOND_BOLT_Y / BOLT_SIZE;
     return (
-      <View accessible={false} pointerEvents="none" style={{ width: size * 42 / 24, height: size, flexShrink: 0 }}>
+      <View accessible={false} pointerEvents="none" style={{ width: size + x, height: size + y, flexShrink: 0 }}>
         <View style={{ position: "absolute", left: 0, top: 0 }}><Icon {...props} size={size} /></View>
-        <View style={{ position: "absolute", right: 0, top: 0 }}><Icon {...props} size={size} /></View>
+        <View style={{ position: "absolute", left: x, top: y }}><Icon {...props} size={size} /></View>
       </View>
     );
   }

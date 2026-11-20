@@ -285,7 +285,9 @@ describe("native render adapter", () => {
     }
     const doubleBolt = renderer!.root.findAllByType("NativeMeasure")
       .find((node) => node.props.pointerEvents === "none");
-    expect(doubleBolt?.props.style).toMatchObject({ width: 28, height: 16 });
+    expect(doubleBolt?.props.style).toMatchObject({ width: 26, height: 18 });
+    expect(doubleBolt?.findAllByType("NativeMeasure").at(-1)?.props.style)
+      .toMatchObject({ left: 10, top: 2 });
     expect(renderer!.root.findByType(SpeedToolbar).props.featureItems[0].value).toBe("ultrafast");
     await act(() => renderer!.update(toolbar("priority")));
     expect(bolts()).toHaveLength(1);
