@@ -6,7 +6,7 @@
     "assets/controls-demo.png"
   ],
   "requirements": {
-    "paseo": ">=0.15.4 <0.17.0"
+    "paseo": ">=0.15.4 <0.18.0"
   },
   "translations": {
     "zh-CN": {

@@ -65,6 +65,34 @@ describe("UI phrase dictionary", () => {
     expect(translatePhrase("选择 thinking 选项（Max）", { provider: "claude" }))
       .toBe("选择思考强度（最高）");
   });
+
+  it("translates Antigravity and Paseo 0.17.1 zh-CN/provider control phrases without touching model names", () => {
+    expect(["Low", "Medium", "High", "Extra"].map((text) => translatePhrase(text, { provider: "antigravity", thinking: true })))
+      .toEqual(["轻度", "中", "高", "极高"]);
+    expect(["Default", "Accept edits", "Auto", "Plan", "Full access"].map((text) => translatePhrase(text, { provider: "antigravity" })))
+      .toEqual(["默认", "自动接受编辑", "自动", "计划", "完全访问"]);
+    expect(translatePhrase("搜索 modes...")).toBe("搜索模式…");
+    expect(translatePhrase("搜索modes...")).toBe("搜索模式…");
+    expect(translatePhrase("选择 thinking 选项")).toBe("选择思考强度");
+    expect(translatePhrase("选择 thinking 选项（Extra）", { provider: "antigravity" })).toBe("选择思考强度（极高）");
+    expect(translatePhrase("选择 Agent mode")).toBe("选择权限模式");
+    expect(translatePhrase("选择 Agent mode（Full access）")).toBe("选择权限模式（完全访问）");
+    expect(translatePhrase("打开 Agent features")).toBe("打开智能体功能");
+    expect(translatePhrase("更改模式")).toBe("切换模式");
+    expect(translatePhrase("Default Permissions")).toBe("默认权限");
+    expect(translatePhrase("Always Ask")).toBe("始终询问");
+    expect(translatePhrase("Accept File Edits")).toBe("自动接受文件编辑");
+    expect(translatePhrase("Select speed")).toBe("选择速度");
+    expect(translatePhrase("Flex")).toBe("弹性");
+    expect(translatePhrase("Speed: Flex")).toBe("速度：弹性");
+    expect(translatePhrase("Ultracode: On")).toBe("Ultracode：开启");
+    expect(translatePhrase("Ultracode: Off")).toBe("Ultracode：关闭");
+    expect(translatePhrase("Ultracode: 开启")).toBe("Ultracode：开启");
+    expect(translatePhrase("Ultracode: 关闭")).toBe("Ultracode：关闭");
+    expect(translatePhrase("ultracode: On")).toBe("Ultracode：开启");
+    expect(translatePhrase("Unknown")).toBe("未知");
+    expect(translatePhrase("Gemini 4 Neon")).toBe("Gemini 4 Neon");
+  });
 });
 
 describe("scoped host controls", () => {
@@ -245,6 +273,46 @@ describe("scoped host controls", () => {
     expect(portal.textContent).toBe("自动接受编辑跳过权限确认New provider mode");
     expect(portal.querySelector("input")!.value).toBe("High");
     expect(portal.querySelector("input")!.placeholder).toBe("搜索模式…");
+  });
+
+  it("translates Paseo 0.17.1 Antigravity thinking and mode controls, zh-CN placeholders and keeps search input values", async () => {
+    document.body.innerHTML = `
+      <section data-testid="workspace-pane-ag">
+        <button data-testid="workspace-tab-agent_ag" aria-selected="true"></button>
+        <section data-testid="message-input-root">
+          <button data-testid="combined-model-selector">Gemini 4 Neon</button>
+          <button data-testid="agent-thinking-selector" aria-label="选择 thinking 选项（Extra）"><span>Extra</span></button>
+          <button data-testid="mode-control" aria-label="选择 Agent mode（Full access）"><span>Full access</span></button>
+        </section>
+      </section>`;
+    controller = install(true, () => "antigravity");
+    expect(query('[data-testid="combined-model-selector"]').textContent).toBe("Gemini 4 Neon");
+    expect(query('[data-testid="agent-thinking-selector"]').textContent).toBe("极高");
+    expect(query('[data-testid="agent-thinking-selector"]').getAttribute("aria-label")).toBe("选择思考强度（极高）");
+    expect(query('[data-testid="mode-control"]').textContent).toBe("完全访问");
+    expect(query('[data-testid="mode-control"]').getAttribute("aria-label")).toBe("选择权限模式（完全访问）");
+
+    activate('[data-testid="agent-thinking-selector"]');
+    const thinkingMenu = menu('<button data-value="low">Low</button><button data-value="medium">Medium</button><button data-value="high">High</button><button data-value="xhigh">Extra</button>');
+    await settle();
+    expect(Array.from(thinkingMenu.querySelectorAll("button")).map((el) => el.textContent))
+      .toEqual(["轻度", "中", "高", "极高"]);
+    thinkingMenu.remove();
+
+    activate('[data-testid="mode-control"]');
+    const modeMenu = menu(
+      '<input data-testid="mode-search-input" placeholder="搜索 modes..." value="Plan">'
+      + '<span>Default</span><span>Accept edits</span><span>Auto</span><span>Plan</span><span>Full access</span>',
+    );
+    await settle();
+    expect(modeMenu.querySelector("input")!.placeholder).toBe("搜索模式…");
+    expect(modeMenu.querySelector("input")!.value).toBe("Plan");
+    expect(Array.from(modeMenu.querySelectorAll("span")).map((el) => el.textContent))
+      .toEqual(["默认", "自动接受编辑", "自动", "计划", "完全访问"]);
+
+    modeMenu.querySelector("input")!.setAttribute("placeholder", "搜索modes...");
+    await settle();
+    expect(modeMenu.querySelector("input")!.placeholder).toBe("搜索模式…");
   });
 
   it("keeps menus translated through backdrop clicks, Escape and exit animations", async () => {

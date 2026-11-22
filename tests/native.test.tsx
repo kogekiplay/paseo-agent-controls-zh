@@ -576,6 +576,180 @@ describe("native render adapter", () => {
     expect(options()[0]).toBe("低");
   });
 
+  it("translates Paseo 0.17.1 Antigravity thinking/mode menus, zh-CN search placeholders and preserves search filtering", async () => {
+    const agThinking = [
+      { value: "low", label: "Low" },
+      { value: "medium", label: "Medium" },
+      { value: "high", label: "High" },
+      { value: "xhigh", label: "Extra" },
+    ];
+    const agModes = [
+      { id: "default", label: "Default" },
+      { id: "accept-edits", label: "Accept edits" },
+      { id: "auto", label: "Auto" },
+      { id: "plan", label: "Plan" },
+      { id: "full-access", label: "Full access" },
+    ];
+    function ModeControl017(props: Record<string, any>) {
+      const anchorRef = useRef(null);
+      const [queryText, setQueryText] = useState("");
+      const modeOptions = props.modeOptions as { id: string; label: string }[];
+      const current = modeOptions.find((option) => option.id === props.selectedModeId) ?? modeOptions[0];
+      const filtered = queryText.trim()
+        ? modeOptions.filter((option) => option.label.toLowerCase().includes(queryText.trim().toLowerCase()))
+        : modeOptions;
+      return rawJsx.jsxs("NativeView", { children: [
+        rawJsx.jsx(Control, {
+          testID: "mode-control", ref: anchorRef, surface: "toolbar",
+          label: "Mode", value: current.label,
+          accessibilityLabel: `选择 Agent mode（${current.label}）`,
+        }),
+        rawJsx.jsx(Menu, {
+          anchorRef, options: filtered, value: current.id, open: true,
+          onOpenChange: () => {}, onSelect: props.onSelectMode,
+          header: {
+            title: "Mode",
+            search: {
+              placeholder: props.searchPlaceholder ?? "搜索 modes...",
+              testID: "mode-search-input",
+              onChange: setQueryText,
+            },
+          },
+        }),
+      ] });
+    }
+    function Antigravity017Toolbar(props: Record<string, any>) {
+      const thinkingRef = useRef(null);
+      const item = props.thinkingItems[0];
+      const selectedChoice = item.choices.find((choice: any) => choice.value === item.value);
+      return rawJsx.jsxs("NativeView", { children: [
+        rawJsx.jsx("NativeModel", { label: props.selectedModelId }),
+        rawJsx.jsx(Control, {
+          testID: item.testID, ref: thinkingRef, surface: "toolbar",
+          label: item.title, value: selectedChoice.label,
+          accessibilityLabel: item.accessibilityLabel,
+        }),
+        rawJsx.jsx(Menu, {
+          anchorRef: thinkingRef,
+          options: item.choices.map((choice: any) => ({ id: choice.value, label: choice.label })),
+          value: item.value, open: true,
+          onOpenChange: () => {}, onSelect: item.onChange,
+          header: { title: item.title },
+        }),
+        rawJsx.jsx(ModeControl017, {
+          ...props.modeControl,
+          searchPlaceholder: props.searchPlaceholder,
+        }),
+      ] });
+    }
+    function renderToolbar(searchPlaceholder = "搜索 modes...") {
+      return rawJsx.jsx(Antigravity017Toolbar, {
+        provider: "antigravity",
+        selectedModelId: "Gemini 4 Neon",
+        modelSelectorProviders: [],
+        thinkingItems: [{
+          id: "thinking", type: "select", testID: "agent-thinking-selector", title: "Thinking",
+          value: "high", choices: agThinking, iconOnly: false,
+          accessibilityLabel: "选择 thinking 选项（High）",
+          onChange: (id: string) => selected.push(id),
+        }],
+        featureItems: [],
+        modeControl: {
+          provider: "antigravity",
+          modeOptions: agModes,
+          selectedModeId: "full-access",
+          onSelectMode: (id: string) => selected.push(id),
+        },
+        glyphs: { icon: { size: 20 }, label: { size: 20 } },
+        presentation: { ...condensed, showThinkingLabel: true, foldControls: false },
+        searchPlaceholder,
+      });
+    }
+
+    controller = installNative();
+    await mount(renderToolbar("搜索 modes..."));
+    expect(renderer!.root.findByType("NativeModel").props.label).toBe("Gemini 4 Neon");
+    expect(controls()[0].props).toMatchObject({
+      label: "思考强度", value: "高", accessibilityLabel: "选择思考强度（高）",
+    });
+    expect(controls()[1].props).toMatchObject({
+      label: "模式", value: "完全访问", accessibilityLabel: "选择权限模式（完全访问）",
+    });
+    const menus = () => renderer!.root.findAllByType("NativeMenu");
+    expect(menus()[0].props.header.title).toBe("思考强度");
+    expect(menus()[1].props.header.title).toBe("模式");
+    expect(menus()[1].props.header.search.placeholder).toBe("搜索模式…");
+    expect(menus()[1].props.header.search.testID).toBe("mode-search-input");
+    expect(options()).toEqual(["轻度", "中", "高", "极高", "默认", "自动接受编辑", "自动", "计划", "完全访问"]);
+
+    // Verify search filtering works against translated Chinese labels and keeps original mode IDs.
+    await act(() => menus()[1].props.header.search.onChange("计划"));
+    expect(options()).toEqual(["轻度", "中", "高", "极高", "计划"]);
+    await act(() => renderer!.root.findAllByType("NativeOption")[4].props.onPress());
+    await act(() => renderer!.root.findAllByType("NativeOption")[3].props.onPress());
+    expect(selected).toEqual(["plan", "xhigh"]);
+
+    // Verify no-space zh-CN placeholder variant and clean disable restoration.
+    await act(() => renderer!.update(renderToolbar("搜索modes...")));
+    expect(menus()[1].props.header.search.placeholder).toBe("搜索模式…");
+    await act(() => controller!.setEnabled(false));
+    expect(controls()[0].props.value).toBe("High");
+    expect(controls()[1].props.value).toBe("Full access");
+    expect(menus()[1].props.header.search.placeholder).toBe("搜索modes...");
+  });
+
+  it("preserves provider scope and option IDs in Combobox when TooltipTrigger clones trigger ref into a callback", async () => {
+    const onSelect = vi.fn();
+    function TooltipTriggerAsChild({ children }: { children: React.ReactElement<Record<string, unknown>> }) {
+      const originalRef = children.props.ref;
+      return React.cloneElement(children, {
+        ref: (node: unknown) => {
+          if (typeof originalRef === "function") originalRef(node);
+          else if (originalRef && typeof originalRef === "object") Object.assign(originalRef, { current: node });
+        },
+      });
+    }
+    function ClonedRefControl(props: Record<string, unknown>) {
+      const thinkingAnchor = useRef(null);
+      const speedAnchor = useRef(null);
+      return rawJsx.jsxs("NativeView", { children: [
+        rawJsx.jsx(TooltipTriggerAsChild, {
+          children: rawJsx.jsx(Control, {
+            testID: "agent-thinking-selector", ref: thinkingAnchor,
+            label: "Thinking", value: "Max",
+          }),
+        }),
+        rawJsx.jsx(Menu, {
+          anchorRef: thinkingAnchor,
+          options: [{ id: "Low", label: "Low" }, { id: "Max", label: "Max" }],
+          value: "Max", open: true, onOpenChange: () => {}, onSelect,
+          searchPlaceholder: "Search modes...",
+        }),
+        rawJsx.jsx(TooltipTriggerAsChild, {
+          children: rawJsx.jsx(Control, {
+            testID: "agent-feature-service_tier", ref: speedAnchor,
+            label: "Speed", value: "Fast",
+          }),
+        }),
+        rawJsx.jsx(Menu, {
+          anchorRef: speedAnchor,
+          options: [{ id: "Fast", label: "Fast" }, { id: "Flex", label: "Flex" }],
+          value: "Fast", open: true, onOpenChange: () => {}, onSelect,
+        }),
+      ] });
+    }
+    controller = installNative();
+    await mount(rawJsx.jsx(ClonedRefControl, {
+      provider: "claude", thinkingOptions: levels, modelSelectorProviders: [],
+    }));
+    const renderedMenus = renderer!.root.findAllByType(Menu);
+    expect(renderedMenus[0].props.options).toEqual([{ id: "Low", label: "低" }, { id: "Max", label: "最高" }]);
+    expect(renderedMenus[0].props.value).toBe("Max");
+    expect(renderedMenus[0].props.searchPlaceholder).toBe("搜索模式…");
+    expect(renderedMenus[1].props.options).toEqual([{ id: "Fast", label: "快速" }, { id: "Flex", label: "弹性" }]);
+    expect(renderedMenus[1].props.value).toBe("Fast");
+  });
+
   it("leaves chat content, input content and model labels unchanged", async () => {
     controller = installNative();
     await mount(rawJsx.jsxs("NativeView", { children: [

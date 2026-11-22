@@ -25,7 +25,7 @@ const ScopeContext = createContext<Scope>({ kind: "none" });
 const OWNER = Symbol.for("paseo.agent-controls-zh.native.cleanup");
 const THINKING = new Set(["agent-thinking-selector", "agent-controls-thinking"]);
 const SPEED_MENU_MIN_WIDTH = 160;
-const CONTROL_TEXT = ["label", "value", "accessibilityLabel", "title", "placeholder"] as const;
+const CONTROL_TEXT = ["label", "value", "accessibilityLabel", "title", "placeholder", "searchPlaceholder"] as const;
 const NONE: Scope = { kind: "none" };
 
 function record(value: unknown): value is Props {
@@ -339,10 +339,14 @@ export function installNative(): TranslationController {
         const owner = anchors.get(props.anchorRef as object);
         // Model browsers also use Combobox. Only registered Agent controls own a
         // translated menu; the remaining menu tree gets an explicit empty scope.
-        scope = owner ?? NONE;
+        // TooltipTrigger(asChild) wraps the trigger ref in a callback, so fall
+        // back to the inherited provider when the trigger could not update it.
+        scope = owner ? { ...owner, provider: owner.provider ?? inherited.provider } : NONE;
         if (active && owner) {
           translated = {
             ...displayProps(props, scope),
+            // Combobox `value` is the selected option ID, never display text.
+            ...("value" in props ? { value: props.value } : {}),
             options: options(props.options, scope),
             header: header(props.header, scope),
           };
