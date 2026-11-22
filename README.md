@@ -1,12 +1,12 @@
-# Agent Controls Chinese
+# Paseo Chinese Localization
 
 [简体中文](README.zh-CN.md)
 
-Simplified Chinese labels for Paseo's agent composer controls: thinking effort, permission modes, speed and plan mode, with their dropdowns, tooltips and accessibility labels.
+Fills gaps in Paseo's Simplified Chinese interface, including subagents, the sidebar, workspaces, settings, reviews and Git actions. It also translates the agent composer's thinking effort, permissions, speed, plan mode, menus, tooltips and accessibility labels.
 
 ![Isolated interface preview using the plugin's actual translator](assets/controls-demo.png)
 
-This preview uses sample controls and the actual translation engine, without user chats.
+This preview shows the composer with sample data.
 
 | Agent | Low | Medium | High | Extra high | Max | Ultra |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -17,13 +17,13 @@ Claude Code's effort names follow the effort-menu mappings in [javaht/claude-des
 
 ## Install
 
-Supports Paseo 0.15.4 through 0.17.x on desktop, browser, native iOS and native Android clients.
+Supports Paseo 0.15.4 through 0.17.x on desktop, browser, native iOS and native Android clients. On 0.17.x, the plugin adds reversible overrides to the built-in `zh-CN` translation resources. Composer control translation also works on the supported 0.15 and 0.16 versions.
 
 ```sh
-paseo plugin add git:kogekiplay/paseo-agent-controls-zh --ref v0.2.14
+paseo plugin add git:kogekiplay/paseo-agent-controls-zh --ref v0.3.0
 ```
 
-Translation is enabled on installation. Open the Command Center and search for **Agent 控件中文：翻译设置**, or open this plugin's settings. The browser saves the switch locally. On native clients the switch lasts for the current app run and starts enabled after relaunch. Disabling or unloading restores the original labels.
+Translation is enabled on installation. Choose Simplified Chinese in Paseo to see the interface translations. Open the Command Center and search for **Paseo 整体汉化：翻译设置**, or open this plugin's settings. The browser saves the switch locally. On native clients the switch lasts for the current app run and starts enabled after relaunch. Turning off translation or unloading the plugin restores the original interface and composer labels.
 
 Menus and tooltips retain Chinese through their exit animations. Original option IDs, event handlers and permission behavior stay intact.
 
@@ -43,7 +43,7 @@ Codex speed choices include Normal, Fast and Ultrafast. Their translated labels 
 
 This is a client-only plugin. The browser adapter observes agent IDs and provider metadata through the existing Paseo connection to select a dictionary for each composer. Browser drafts without agent metadata recognize Claude by the displayed model family. The native adapter uses the provider already passed to the host control components. Existing agents prefer their actual provider, so a Codex agent routing to another model still uses Codex labels.
 
-It does not read chat content, contact a translation service, or change prompts, model names or permission settings. Unknown phrases keep their original text. The browser adapter depends on host page structure. The native adapter uses the shared React element factories in Paseo 0.15.4 through 0.17.x to wrap recognized Agent controls and their menus. It handles the 0.15 controls and the precomputed control items and provider options in 0.16 and 0.17. Unsupported render runtimes leave controls unchanged and report the limitation in settings.
+Translation uses a local dictionary for known interface strings and composer labels. Chat messages, input drafts, code diffs, terminal output and model names render from their original data. The browser adapter depends on host page structure. The native adapter wraps recognized controls and menus through Paseo's shared React element factories. It handles 0.15 controls and the precomputed control items and provider options in 0.16 and 0.17.
 
 ## Development
 
@@ -55,7 +55,9 @@ paseo plugin install /absolute/path/to/paseo-agent-controls-zh
 paseo plugin reload paseo-agent-controls-zh
 ```
 
-- `shared/translations.ts`: general phrases and Claude-specific effort labels.
+- `shared/paseo-i18n-zh.ts`: overrides for Paseo's `zh-CN` interface strings.
+- `client/i18n.ts`: applies and restores the interface overrides.
+- `shared/translations.ts`: composer phrases and Claude-specific effort labels.
 - `client/web.ts`: scoped text replacement, overlay ownership, lifecycle cleanup and browser-only APIs.
 - `client/native.tsx`: native React component/option adaptation and runtime cleanup.
 - `client/settings.tsx`: React Native settings using the host theme.

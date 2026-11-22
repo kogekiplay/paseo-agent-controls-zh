@@ -1,7 +1,7 @@
 {
   "id": "paseo-agent-controls-zh",
-  "name": "Agent Controls Chinese",
-  "description": "Chinese translations for Paseo agent composer controls, menus and tooltips.",
+  "name": "Paseo Chinese Localization",
+  "description": "Completes Simplified Chinese UI translations in Paseo and localizes agent controls, menus and tooltips.",
   "media": [
     "assets/controls-demo.png"
   ],
@@ -10,8 +10,8 @@
   },
   "translations": {
     "zh-CN": {
-      "name": "Agent 控件中文",
-      "description": "将 Agent 输入框下方的思考强度、权限模式、速度和计划模式翻译为中文。"
+      "name": "Paseo 整体汉化",
+      "description": "补全 Paseo 界面的简体中文翻译，并汉化智能体输入框的控件、菜单和提示。"
     }
   }
 }

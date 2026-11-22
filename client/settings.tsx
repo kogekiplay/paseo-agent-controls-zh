@@ -12,10 +12,10 @@ export function createSettingsScreen(controller: TranslationController) {
       <ScrollView style={{ flex: 1, backgroundColor: theme.colors.surface0 }}
         contentContainerStyle={{ padding: layout.compact ? 16 : 24, gap: 20 }}>
         <Text style={{ color: theme.colors.foreground, fontSize: 22, fontWeight: "600" }}>
-          Agent 控件中文
+          Paseo 整体汉化
         </Text>
         <Text style={{ color: theme.colors.foregroundMuted, fontSize: 14, lineHeight: 22 }}>
-          翻译输入框下方的思考强度、权限模式、速度和计划模式，以及对应的菜单和提示文字。
+          补全 Paseo 全界面简体中文（子智能体、侧边栏、工作区、设置、审查与 Git 操作），同时翻译输入框下方的思考强度、权限模式、速度、计划模式及对应菜单和提示文字。
         </Text>
         <Pressable accessibilityRole="switch" accessibilityLabel="启用中文翻译"
           accessibilityState={{ checked: enabled, disabled: !controller.supported }}
@@ -36,20 +36,20 @@ export function createSettingsScreen(controller: TranslationController) {
         )}
         <View style={{ gap: 10 }}>
           <Text style={{ color: theme.colors.foreground, fontSize: 16, fontWeight: "600" }}>
-            常见翻译
+            覆盖范围与常见翻译
           </Text>
-          {["Codex：轻度 / 中 / 高 / 极高 / 最大 / Ultra",
+          {["界面补全：子智能体（2 个子智能体）、侧边栏、工作区、设置、审查与 Git 操作",
+            "Codex / Antigravity：轻度 / 中 / 高 / 极高 / 最大 / Ultra",
             "Claude Code：低 / 中 / 高 / 极高 / 最高 / Ultracode",
-            "Full access → 完全访问", "Speed: Fast → 速度：快速",
+            "Full access → 完全访问 · Speed: Fast → 速度：快速",
             "Toggle plan mode → 切换计划模式"].map((text) => (
             <Text key={text} style={{ color: theme.colors.foregroundMuted, fontSize: 14 }}>{text}</Text>
           ))}
         </View>
         <Text style={{ color: theme.colors.foregroundMuted, fontSize: 14, lineHeight: 22 }}>
-          中文显示使用本地词典，适用于 Codex、Claude Code 及使用相同控件的其他 Agent。
-          未收录的文案保留原文。
+          使用本地词典补全 Paseo 的简体中文界面，并翻译智能体控件。聊天正文与模型名称按原文显示。
           {Platform.OS === "web" ? "开关保存在当前客户端。" : "原生端开关在当前运行期间有效，重新启动后默认开启。"}
-          关闭插件后恢复原文。
+          关闭开关或卸载插件后自动恢复宿主原文。
         </Text>
         {Platform.OS !== "web" && controller.supported && (
           <Text style={{ color: theme.colors.foregroundMuted, fontSize: 14, lineHeight: 22 }}>

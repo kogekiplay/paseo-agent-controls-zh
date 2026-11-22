@@ -28,6 +28,7 @@ it.skipIf(!bundlePath).each([
     const usesItems = version === "0.16" || version === "0.17";
     const originalJsx = jsx.jsx;
     const originalCreate = rawReact.createElement;
+    const originalUseContext = rawReact.useContext;
     let release: (() => void) | undefined;
     let app: ReactTestRenderer | undefined;
     let settings: ReactTestRenderer | undefined;
@@ -59,7 +60,51 @@ it.skipIf(!bundlePath).each([
         addCommandCenterItem: (command: unknown) => { commands.push(command); return () => {}; },
       });
       expect(jsx.jsx).not.toBe(originalJsx);
+      expect(rawReact.useContext).not.toBe(originalUseContext);
       expect(commands).toHaveLength(1);
+      const I18nContext = rawReact.createContext(null);
+      const zhBundle: Record<string, any> = {
+        subagents: { title: "Subagents", pillLabelOne: "1 个 subagent", pillLabelMany: "{{count}}个subagent" },
+      };
+      const i18nListeners = new Map<string, Set<(...args: unknown[]) => void>>();
+      const mockI18n = {
+        language: "zh-CN",
+        resolvedLanguage: "zh-CN",
+        getResourceBundle: (lng: string, ns: string) => (lng === "zh-CN" && ns === "translation" ? zhBundle : undefined),
+        addResourceBundle: (lng: string, ns: string, patch: Record<string, any>) => {
+          if (lng !== "zh-CN" || ns !== "translation") return;
+          for (const [k, v] of Object.entries(patch)) {
+            if (v && typeof v === "object" && !Array.isArray(v)) {
+              zhBundle[k] = { ...(zhBundle[k] ?? {}), ...v };
+            } else {
+              zhBundle[k] = v;
+            }
+          }
+        },
+        on: (event: string, listener: (...args: unknown[]) => void) => {
+          let set = i18nListeners.get(event);
+          if (!set) { set = new Set(); i18nListeners.set(event, set); }
+          set.add(listener);
+        },
+        off: (event: string, listener: (...args: unknown[]) => void) => {
+          i18nListeners.get(event)?.delete(listener);
+        },
+        emit: (event: string, ...args: unknown[]) => {
+          for (const listener of Array.from(i18nListeners.get(event) ?? [])) listener(...args);
+        },
+      };
+      function SubagentPill() {
+        const ctx = rawReact.useContext(I18nContext) as { i18n: typeof mockI18n } | null;
+        const rev = useRef(0);
+        const subscribe = rawReact.useCallback((notify: () => void) => {
+          const onChange = () => { rev.current += 1; notify(); };
+          ctx!.i18n.on("languageChanged", onChange);
+          return () => ctx!.i18n.off("languageChanged", onChange);
+        }, [ctx]);
+        rawReact.useSyncExternalStore(subscribe, () => rev.current, () => rev.current);
+        const text = String(zhBundle.subagents.pillLabelMany).replace("{{count}}", "2");
+        return jsx.jsx("NativeSubagentPill", { children: text });
+      }
       function ThinkingControl(props: Record<string, unknown>) {
         const { surface: _surface, ...rest } = props;
         return jsx.jsx("NativeControl", {
@@ -127,7 +172,7 @@ it.skipIf(!bundlePath).each([
           jsx.jsx(ModeControl, props.modeControl as Record<string, unknown>),
         ] });
       }
-      await act(() => {
+      await act(async () => {
         app = create(jsx.jsxs("NativeView", { children: [...["claude", "codex"].map((provider) =>
           jsx.jsx(Controls, {
             provider, modelSelectorProviders: [],
@@ -177,8 +222,14 @@ it.skipIf(!bundlePath).each([
             selectedModeId: "full-access",
             onSelectMode: () => {},
           },
-        }) : null] }));
+        }) : null, version === "0.17"
+          ? jsx.jsx(I18nContext.Provider, { value: { i18n: mockI18n }, children: jsx.jsx(SubagentPill, {}) })
+          : null] }));
       });
+      if (version === "0.17") {
+        expect(rawReact.useContext).toBe(originalUseContext);
+        expect(app!.root.findByType("NativeSubagentPill").props.children).toBe("2 个子智能体");
+      }
       if (usesItems) {
         expect(app!.root.findByType("NativeText").props).toMatchObject({
           children: "GPT-6.1 Sol · routing group", numberOfLines: 1, ellipsizeMode: "tail",
@@ -230,6 +281,7 @@ it.skipIf(!bundlePath).each([
         expect(app!.root.findByType("NativeAntigravityThinking").props.value).toBe("Extra");
         expect(app!.root.findByType("NativeModeTrigger").props.value).toBe("Full access");
         expect(app!.root.findByType("NativeModeMenu").props.header.search.placeholder).toBe("搜索 modes...");
+        expect(app!.root.findByType("NativeSubagentPill").props.children).toBe("2个subagent");
       }
       expect(app!.root.findAllByType("NativeControl").map((node) => node.props.value))
         .toEqual(["Ultra code", "Ultra code"]);
@@ -244,6 +296,7 @@ it.skipIf(!bundlePath).each([
       if (version === "0.17") {
         expect(app!.root.findByType("NativeAntigravityThinking").props.value).toBe("极高");
         expect(app!.root.findByType("NativeModeMenu").props.header.search.placeholder).toBe("搜索模式…");
+        expect(app!.root.findByType("NativeSubagentPill").props.children).toBe("2 个子智能体");
       }
       await act(() => release!());
       expect(app!.root.findAllByType("NativeControl").map((node) => node.props.value))
@@ -251,6 +304,7 @@ it.skipIf(!bundlePath).each([
       if (version === "0.17") {
         expect(app!.root.findByType("NativeAntigravityThinking").props.value).toBe("Extra");
         expect(app!.root.findByType("NativeModeMenu").props.header.search.placeholder).toBe("搜索 modes...");
+        expect(app!.root.findByType("NativeSubagentPill").props.children).toBe("2个subagent");
       }
     } finally {
       if (app) await act(() => app!.unmount());
@@ -260,5 +314,6 @@ it.skipIf(!bundlePath).each([
     }
     expect(jsx.jsx).toBe(originalJsx);
     expect(rawReact.createElement).toBe(originalCreate);
+    expect(rawReact.useContext).toBe(originalUseContext);
   },
 );
