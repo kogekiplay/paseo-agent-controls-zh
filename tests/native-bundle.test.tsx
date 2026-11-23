@@ -224,11 +224,18 @@ it.skipIf(!bundlePath).each([
           },
         }) : null, version === "0.17"
           ? jsx.jsx(I18nContext.Provider, { value: { i18n: mockI18n }, children: jsx.jsx(SubagentPill, {}) })
+          : null, version === "0.17"
+          ? jsx.jsx("NativeFactsRow", {
+            testID: "subagents-track-row-facts-ag-1",
+            children: "Gemini 4 Neon · High · Full access · 258k / 1m tokens (25%)",
+          })
           : null] }));
       });
       if (version === "0.17") {
         expect(rawReact.useContext).toBe(originalUseContext);
         expect(app!.root.findByType("NativeSubagentPill").props.children).toBe("2 个子智能体");
+        expect(app!.root.findByType("NativeFactsRow").props.children)
+          .toBe("Gemini 4 Neon · 高 · 完全访问 · 258k / 1m tokens (25%)");
       }
       if (usesItems) {
         expect(app!.root.findByType("NativeText").props).toMatchObject({
@@ -282,6 +289,8 @@ it.skipIf(!bundlePath).each([
         expect(app!.root.findByType("NativeModeTrigger").props.value).toBe("Full access");
         expect(app!.root.findByType("NativeModeMenu").props.header.search.placeholder).toBe("搜索 modes...");
         expect(app!.root.findByType("NativeSubagentPill").props.children).toBe("2个subagent");
+        expect(app!.root.findByType("NativeFactsRow").props.children)
+          .toBe("Gemini 4 Neon · High · Full access · 258k / 1m tokens (25%)");
       }
       expect(app!.root.findAllByType("NativeControl").map((node) => node.props.value))
         .toEqual(["Ultra code", "Ultra code"]);
@@ -297,6 +306,8 @@ it.skipIf(!bundlePath).each([
         expect(app!.root.findByType("NativeAntigravityThinking").props.value).toBe("极高");
         expect(app!.root.findByType("NativeModeMenu").props.header.search.placeholder).toBe("搜索模式…");
         expect(app!.root.findByType("NativeSubagentPill").props.children).toBe("2 个子智能体");
+        expect(app!.root.findByType("NativeFactsRow").props.children)
+          .toBe("Gemini 4 Neon · 高 · 完全访问 · 258k / 1m tokens (25%)");
       }
       await act(() => release!());
       expect(app!.root.findAllByType("NativeControl").map((node) => node.props.value))
@@ -305,6 +316,8 @@ it.skipIf(!bundlePath).each([
         expect(app!.root.findByType("NativeAntigravityThinking").props.value).toBe("Extra");
         expect(app!.root.findByType("NativeModeMenu").props.header.search.placeholder).toBe("搜索 modes...");
         expect(app!.root.findByType("NativeSubagentPill").props.children).toBe("2个subagent");
+        expect(app!.root.findByType("NativeFactsRow").props.children)
+          .toBe("Gemini 4 Neon · High · Full access · 258k / 1m tokens (25%)");
       }
     } finally {
       if (app) await act(() => app!.unmount());

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { install, type TranslationController } from "../client/web";
-import { translatePhrase } from "../shared/translations";
+import { translateFactsLine, translatePhrase } from "../shared/translations";
 
 let controller: TranslationController | undefined;
 const settle = async () => { await new Promise((resolve) => setTimeout(resolve, 0)); };
@@ -92,6 +92,45 @@ describe("UI phrase dictionary", () => {
     expect(translatePhrase("ultracode: On")).toBe("Ultracode：开启");
     expect(translatePhrase("Unknown")).toBe("未知");
     expect(translatePhrase("Gemini 4 Neon")).toBe("Gemini 4 Neon");
+  });
+
+  it("translates agent facts lines while preserving model names, routing groups, token summaries and single-segment host labels", () => {
+    expect(translateFactsLine("Gemini 4 Neon · High · Full access · 258k / 1m tokens (25%)"))
+      .toBe("Gemini 4 Neon · 高 · 完全访问 · 258k / 1m tokens (25%)");
+    expect(translateFactsLine("GPT-6.2 Sol · routing group · 极高 · Full access · 140k / 950k tokens (15%)"))
+      .toBe("GPT-6.2 Sol · routing group · 极高 · 完全访问 · 140k / 950k tokens (15%)");
+    expect(translateFactsLine("GPT-6.2 Sol · routing group · 极高 · Default permissions · 159k / 950k tokens (17%)"))
+      .toBe("GPT-6.2 Sol · routing group · 极高 · 默认权限 · 159k / 950k tokens (17%)");
+
+    // Claude vs Codex/Antigravity thinking differentiation (inferred and explicit provider).
+    expect(translateFactsLine("Claude Opus 4.5 · Low · Accept edits · 50k / 200k tokens (25%)"))
+      .toBe("Claude Opus 4.5 · 低 · 自动接受编辑 · 50k / 200k tokens (25%)");
+    expect(translateFactsLine("Claude Sonnet 4 · Max · Bypass permissions"))
+      .toBe("Claude Sonnet 4 · 最高 · 跳过权限确认");
+    expect(translateFactsLine("Claude Opus 5.5 · Ultra code · Auto mode · 10k / 200k tokens (5%)"))
+      .toBe("Claude Opus 5.5 · Ultracode · 自动模式 · 10k / 200k tokens (5%)");
+    expect(translateFactsLine("Opus 5.5 · Max · Full access", "codex"))
+      .toBe("Opus 5.5 · 最大 · 完全访问");
+    expect(translateFactsLine("Gemini 4 Neon · Low · Default", "antigravity"))
+      .toBe("Gemini 4 Neon · 轻度 · 默认");
+    expect(translateFactsLine("Gemini 4 Neon · Extra · Plan · 20k / 1m tokens (2%)", "antigravity"))
+      .toBe("Gemini 4 Neon · 极高 · 计划 · 20k / 1m tokens (2%)");
+
+    // No mode segment (thinking only) and already-translated Chinese mode + English thinking.
+    expect(translateFactsLine("Claude Opus 4.5 · Max · 50k / 200k tokens (25%)"))
+      .toBe("Claude Opus 4.5 · 最高 · 50k / 200k tokens (25%)");
+    expect(translateFactsLine("GPT-6.2 Sol · routing group · High"))
+      .toBe("GPT-6.2 Sol · routing group · 高");
+    expect(translateFactsLine("Gemini 4 Neon · High · 完全访问 · 258k / 1m tokens (25%)"))
+      .toBe("Gemini 4 Neon · 高 · 完全访问 · 258k / 1m tokens (25%)");
+
+    // Single-segment remote host names and non-matching middle segments must remain untouched.
+    expect(translateFactsLine("Default")).toBe("Default");
+    expect(translateFactsLine("Auto")).toBe("Auto");
+    expect(translateFactsLine("GPT-6.2 Sol · routing group · 140k / 950k tokens (15%)"))
+      .toBe("GPT-6.2 Sol · routing group · 140k / 950k tokens (15%)");
+    expect(translateFactsLine("  Gemini 4 Neon · High · Full access\n"))
+      .toBe("  Gemini 4 Neon · 高 · 完全访问\n");
   });
 });
 
@@ -313,6 +352,54 @@ describe("scoped host controls", () => {
     modeMenu.querySelector("input")!.setAttribute("placeholder", "搜索modes...");
     await settle();
     expect(modeMenu.querySelector("input")!.placeholder).toBe("搜索模式…");
+  });
+
+  it("translates subagent track row facts and agent pane subtitles on web and restores on disable/dispose", async () => {
+    document.body.innerHTML = `
+      <section data-testid="workspace-pane-main">
+        <button data-testid="workspace-tab-agent_claude-1" aria-selected="true"></button>
+        <div data-testid="agent-pane-subtitle">Opus 5.5 · Low · Accept edits · 50k / 200k tokens (25%)</div>
+      </section>
+      <div role="dialog">
+        <span data-testid="subagents-track-row-facts-ag-1">Gemini 4 Neon · High · Full access · 258k / 1m tokens (25%)</span>
+        <span data-testid="subagents-track-row-facts-codex-1">GPT-6.2 Sol · routing group · 极高 · Default permissions · 159k / 950k tokens (17%)</span>
+        <span data-testid="subagents-track-row-facts-codex-opus">Opus 5.5 · Max · Full access · 10k / 200k tokens (5%)</span>
+        <span data-testid="subagents-track-row-facts-remote-1">Default</span>
+      </div>`;
+    const providerMap: Record<string, string> = {
+      "claude-1": "claude",
+      "ag-1": "antigravity",
+      "codex-1": "codex",
+      "codex-opus": "codex",
+    };
+    controller = install(true, (agentId) => providerMap[agentId]);
+    expect(query('[data-testid="agent-pane-subtitle"]').textContent)
+      .toBe("Opus 5.5 · 低 · 自动接受编辑 · 50k / 200k tokens (25%)");
+    expect(query('[data-testid="subagents-track-row-facts-ag-1"]').textContent)
+      .toBe("Gemini 4 Neon · 高 · 完全访问 · 258k / 1m tokens (25%)");
+    expect(query('[data-testid="subagents-track-row-facts-codex-1"]').textContent)
+      .toBe("GPT-6.2 Sol · routing group · 极高 · 默认权限 · 159k / 950k tokens (17%)");
+    expect(query('[data-testid="subagents-track-row-facts-codex-opus"]').textContent)
+      .toBe("Opus 5.5 · 最大 · 完全访问 · 10k / 200k tokens (5%)");
+    expect(query('[data-testid="subagents-track-row-facts-remote-1"]').textContent).toBe("Default");
+
+    controller.setEnabled(false);
+    expect(query('[data-testid="agent-pane-subtitle"]').textContent)
+      .toBe("Opus 5.5 · Low · Accept edits · 50k / 200k tokens (25%)");
+    expect(query('[data-testid="subagents-track-row-facts-ag-1"]').textContent)
+      .toBe("Gemini 4 Neon · High · Full access · 258k / 1m tokens (25%)");
+    expect(query('[data-testid="subagents-track-row-facts-codex-1"]').textContent)
+      .toBe("GPT-6.2 Sol · routing group · 极高 · Default permissions · 159k / 950k tokens (17%)");
+
+    controller.setEnabled(true);
+    expect(query('[data-testid="subagents-track-row-facts-ag-1"]').textContent)
+      .toBe("Gemini 4 Neon · 高 · 完全访问 · 258k / 1m tokens (25%)");
+
+    controller.dispose();
+    expect(query('[data-testid="agent-pane-subtitle"]').textContent)
+      .toBe("Opus 5.5 · Low · Accept edits · 50k / 200k tokens (25%)");
+    expect(query('[data-testid="subagents-track-row-facts-ag-1"]').textContent)
+      .toBe("Gemini 4 Neon · High · Full access · 258k / 1m tokens (25%)");
   });
 
   it("keeps menus translated through backdrop clicks, Escape and exit animations", async () => {

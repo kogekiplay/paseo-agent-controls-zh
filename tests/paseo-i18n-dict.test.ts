@@ -70,7 +70,7 @@ const appContents = "/Applications/Paseo.app/Contents";
 const appInfo = join(appContents, "Info.plist");
 const bundleDirectory = join(appContents, "Resources/app-dist/_expo/static/js/web");
 const bundleFiles = existsSync(appInfo)
-  && /<key>CFBundleShortVersionString<\/key>\s*<string>0\.17\.1<\/string>/.test(readFileSync(appInfo, "utf8"))
+  && /<key>CFBundleShortVersionString<\/key>\s*<string>0\.17\.\d+<\/string>/.test(readFileSync(appInfo, "utf8"))
   && existsSync(bundleDirectory)
   ? readdirSync(bundleDirectory).filter((file) => /^index-.*\.js$/.test(file))
   : [];
@@ -125,7 +125,7 @@ function interpolations(text: string): string[] {
   return (text.match(/\{\{[^{}]+\}\}/g) ?? []).sort();
 }
 
-it.skipIf(bundleFiles.length === 0)("matches built-in Paseo 0.17.1 keys and interpolation tokens", () => {
+it.skipIf(bundleFiles.length === 0)("matches built-in Paseo 0.17.x keys and interpolation tokens", () => {
   const host = loadHostDictionary();
   for (const [path, translation] of entries(paseoZhOverrides)) {
     const original = lookup(host, path);

@@ -9,7 +9,7 @@ import React, {
 } from "react";
 import JsxRuntime from "react/jsx-runtime";
 import { Text, View, useWindowDimensions, type LayoutChangeEvent } from "react-native";
-import { translatePhrase, type TranslationContext } from "../shared/translations";
+import { translateFactsLine, translatePhrase, type TranslationContext } from "../shared/translations";
 import { BOLT_SIZE, BOLT_OFFSET } from "../shared/speed-icon";
 import type { TranslationController } from "./web";
 
@@ -49,8 +49,14 @@ function isFoldedModel(props: Props): boolean {
   return Array.isArray(props.providers) && "thinkingLabel" in props
     && typeof props.onSelect === "function";
 }
+const SUBAGENT_FACTS_PREFIX = "subagents-track-row-facts-";
 function isFoldedModelLabel(props: Props): boolean {
   return props.testID === "combined-model-selector-model-label" && typeof props.text === "string";
+}
+function isFactsLine(props: Props): boolean {
+  return typeof props.testID === "string"
+    && (props.testID === "agent-pane-subtitle" || props.testID.startsWith(SUBAGENT_FACTS_PREFIX))
+    && typeof props.children === "string";
 }
 function groupKind(props: Props): Scope["kind"] | null {
   if (!providerOf(props)) return null;
@@ -355,6 +361,11 @@ export function installNative(): TranslationController {
             translated.desktopMinWidth = Math.max(SPEED_MENU_MIN_WIDTH, hostMinWidth);
           }
         }
+      } else if (isFactsLine(props)) {
+        if (active) {
+          const next = translateFactsLine(props.children as string, inherited.provider);
+          if (next !== props.children) translated = { ...props, children: next };
+        }
       }
       // 0.16's TailEllipsisText drops an entire trailing word when it cannot
       // fit, wasting a large part of a phone's model slot for routed names.
@@ -384,7 +395,7 @@ export function installNative(): TranslationController {
           if (control && record(props.ref) && !anchors.has(props.ref)) {
             anchors.set(props.ref, scoped(control));
           }
-          if (groupKind(props) || control || isFoldedModelLabel(props)
+          if (groupKind(props) || control || isFoldedModelLabel(props) || isFactsLine(props)
             || (isMenu(props) && anchors.has(props.anchorRef as object))) args[0] = component(type);
         }
       }

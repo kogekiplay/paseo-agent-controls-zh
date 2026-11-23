@@ -1,4 +1,9 @@
-import { translatePhrase, ULTRAFAST_LABEL, type TranslationContext } from "../shared/translations";
+import {
+  translateFactsLine,
+  translatePhrase,
+  ULTRAFAST_LABEL,
+  type TranslationContext,
+} from "../shared/translations";
 import { BOLT_SIZE, BOLT_OFFSET } from "../shared/speed-icon";
 
 // Browser-only types stay here; neither the plugin nor native clients need lib.dom.
@@ -65,13 +70,15 @@ const CONTROLS = [
 ].join(",");
 // This is text inside the model trigger, not the owner of a thinking menu.
 const FOLDED_THINKING = '[data-testid="combined-model-selector-thinking-label"]';
+const SUBAGENT_FACTS_PREFIX = "subagents-track-row-facts-";
+const FACTS = `[data-testid^="${SUBAGENT_FACTS_PREFIX}"],[data-testid="agent-pane-subtitle"]`;
 const MENUS = '[data-testid="combobox-desktop-container"],[role="dialog"],[aria-modal="true"]';
 const TOOLTIP = '[role="tooltip"]';
 const TOOLTIP_OWNER = "data-paseo-agent-controls-zh-tooltip";
 const SPEED_CONTROL = '[data-testid="agent-feature-service_tier"]';
 const SINGLE_BOLT_VIEW_BOX = `0 0 ${BOLT_SIZE} ${BOLT_SIZE}`;
 const DOUBLE_BOLT_VIEW_BOX = `${-BOLT_OFFSET} 0 ${BOLT_SIZE + BOLT_OFFSET} ${BOLT_SIZE}`;
-const SURFACES = `${CONTROLS},${FOLDED_THINKING},${MENUS},${TOOLTIP}`;
+const SURFACES = `${CONTROLS},${FOLDED_THINKING},${FACTS},${MENUS},${TOOLTIP}`;
 const PROVIDER_SIGNALS = '[data-testid^="workspace-tab-agent_"],[data-testid="combined-model-selector"],[data-testid="agent-controls-model"]';
 const EXCLUDED = 'input,textarea,[contenteditable="true"],pre,code,script,style,svg';
 const ATTRIBUTES = ["aria-label", "title", "placeholder"] as const;
@@ -242,6 +249,38 @@ export function install(
     textChanges.set(node, { original, translated });
     if (current !== translated) node.data = translated;
   }
+  function factsProviderOf(element: Element): string | undefined {
+    const testId = element.getAttribute("data-testid") ?? "";
+    if (testId.startsWith(SUBAGENT_FACTS_PREFIX)) {
+      const agentId = testId.slice(SUBAGENT_FACTS_PREFIX.length);
+      return agentId ? providerForAgent(agentId) : undefined;
+    }
+    const pane = element.closest('[data-testid^="workspace-pane-"]');
+    const tab = pane?.querySelector('[data-testid^="workspace-tab-agent_"][aria-selected="true"]');
+    const agentId = tab?.getAttribute("data-testid")?.slice("workspace-tab-agent_".length);
+    return agentId ? providerForAgent(agentId) : undefined;
+  }
+  function translateFactsText(node: Text, provider?: string) {
+    const current = node.data;
+    const previous = textChanges.get(node);
+    const original = previous?.translated === current ? previous.original : current;
+    const translated = translateFactsLine(original, provider);
+    if (translated === original) {
+      if (current !== original) node.data = original;
+      textChanges.delete(node);
+      return;
+    }
+    textChanges.set(node, { original, translated });
+    if (current !== translated) node.data = translated;
+  }
+  function walkFacts(node: Node, provider?: string) {
+    if (node instanceof Text) {
+      if (!node.parentElement?.closest(EXCLUDED)) translateFactsText(node, provider);
+      return;
+    }
+    if (node instanceof Element && node.matches(EXCLUDED)) return;
+    for (const child of Array.from(node.childNodes)) walkFacts(child, provider);
+  }
   function translateAttributes(element: Element, context: TranslationContext) {
     for (const attribute of ATTRIBUTES) {
       const current = element.getAttribute(attribute);
@@ -325,8 +364,11 @@ export function install(
         }
       }
       updateTooltips();
+      const factsRoots = Array.from(document.querySelectorAll(FACTS));
+      const factsSet = new Set(factsRoots);
       const roots = [
         ...Array.from(document.querySelectorAll(`${CONTROLS},${FOLDED_THINKING}`)),
+        ...factsRoots,
         ...ownedMenus.keys(),
         ...ownedTooltips.keys(),
       ];
@@ -341,6 +383,10 @@ export function install(
         }
       }
       for (const root of roots) {
+        if (factsSet.has(root)) {
+          walkFacts(root, factsProviderOf(root));
+          continue;
+        }
         const tooltipOwnership = ownedTooltips.get(root);
         const context = tooltipOwnership?.context
           ?? contextOf(ownedMenus.get(root) ?? root);

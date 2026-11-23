@@ -750,6 +750,55 @@ describe("native render adapter", () => {
     expect(renderedMenus[1].props.value).toBe("Fast");
   });
 
+  it("translates native subagent track row facts and agent pane subtitles without touching single-segment hosts", async () => {
+    function PaneSubtitle({ text, testID }: { text: string; testID: string }) {
+      return rawJsx.jsx("NativeView", {
+        children: rawJsx.jsx("NativeText", { testID, children: text }),
+      });
+    }
+    controller = installNative();
+    await mount(rawJsx.jsxs("NativeView", { children: [
+      rawJsx.jsx(PaneSubtitle, {
+        testID: "agent-pane-subtitle",
+        text: "Claude Opus 4.5 · Low · Accept edits · 50k / 200k tokens (25%)",
+      }),
+      rawJsx.jsx("NativeText", {
+        testID: "subagents-track-row-facts-ag-1",
+        children: "Gemini 4 Neon · High · Full access · 258k / 1m tokens (25%)",
+      }),
+      rawJsx.jsx("NativeText", {
+        testID: "subagents-track-row-facts-codex-1",
+        children: "GPT-6.2 Sol · routing group · 极高 · Default permissions · 159k / 950k tokens (17%)",
+      }),
+      rawJsx.jsx("NativeText", {
+        testID: "subagents-track-row-facts-remote-1",
+        children: "Default",
+      }),
+    ] }));
+
+    const textOf = (testID: string) => renderer!.root
+      .findAllByType("NativeText")
+      .find((node) => node.props.testID === testID)!.props.children;
+    expect(textOf("agent-pane-subtitle")).toBe("Claude Opus 4.5 · 低 · 自动接受编辑 · 50k / 200k tokens (25%)");
+    expect(textOf("subagents-track-row-facts-ag-1")).toBe("Gemini 4 Neon · 高 · 完全访问 · 258k / 1m tokens (25%)");
+    expect(textOf("subagents-track-row-facts-codex-1"))
+      .toBe("GPT-6.2 Sol · routing group · 极高 · 默认权限 · 159k / 950k tokens (17%)");
+    expect(textOf("subagents-track-row-facts-remote-1")).toBe("Default");
+
+    await act(() => controller!.setEnabled(false));
+    expect(textOf("agent-pane-subtitle")).toBe("Claude Opus 4.5 · Low · Accept edits · 50k / 200k tokens (25%)");
+    expect(textOf("subagents-track-row-facts-ag-1")).toBe("Gemini 4 Neon · High · Full access · 258k / 1m tokens (25%)");
+    expect(textOf("subagents-track-row-facts-codex-1"))
+      .toBe("GPT-6.2 Sol · routing group · 极高 · Default permissions · 159k / 950k tokens (17%)");
+
+    await act(() => controller!.setEnabled(true));
+    expect(textOf("subagents-track-row-facts-ag-1")).toBe("Gemini 4 Neon · 高 · 完全访问 · 258k / 1m tokens (25%)");
+
+    await act(() => controller!.dispose());
+    expect(textOf("agent-pane-subtitle")).toBe("Claude Opus 4.5 · Low · Accept edits · 50k / 200k tokens (25%)");
+    expect(textOf("subagents-track-row-facts-ag-1")).toBe("Gemini 4 Neon · High · Full access · 258k / 1m tokens (25%)");
+  });
+
   it("leaves chat content, input content and model labels unchanged", async () => {
     controller = installNative();
     await mount(rawJsx.jsxs("NativeView", { children: [

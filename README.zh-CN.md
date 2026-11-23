@@ -1,6 +1,6 @@
 # Paseo 整体汉化
 
-补全 Paseo 界面的简体中文翻译，覆盖子智能体、侧边栏、工作区、设置、审查和 Git 操作。智能体输入框下方的思考强度、权限模式、速度和计划模式，以及相关菜单和提示也会显示为中文。
+补全 Paseo 界面的简体中文翻译，覆盖子智能体、侧边栏、工作区、设置、审查和 Git 操作。插件也翻译智能体输入框控件，以及子智能体列表和智能体窗格副标题中的思考强度和权限模式。
 
 ![使用真实翻译引擎的隔离界面演示](assets/controls-demo.png)
 
@@ -18,7 +18,7 @@ Claude Code 的译名参考 [javaht/claude-desktop-zh-cn](https://github.com/jav
 适配 Paseo 0.15.4 至 0.17.x 的桌面版、网页版、原生 iOS 和 Android 客户端。0.17.x 可通过内置 `zh-CN` 词表补全界面中文，关闭后可恢复宿主文案。受支持的 0.15 和 0.16 版本也可使用智能体控件汉化。
 
 ```sh
-paseo plugin add git:kogekiplay/paseo-agent-controls-zh --ref v0.3.0
+paseo plugin add git:kogekiplay/paseo-agent-controls-zh --ref v0.3.1
 ```
 
 安装后默认开启。将 Paseo 的界面语言设为简体中文，即可看到补译的文案。通过命令中心搜索「Paseo 整体汉化：翻译设置」，或在插件设置中调整翻译开关。网页端开关保存在当前浏览器。原生端开关在本次运行期间有效，重新打开应用后默认开启。关闭翻译、停用或卸载插件可恢复宿主文案。

@@ -156,3 +156,78 @@ export function translatePhrase(text: string, context: TranslationContext = {}):
   return text.slice(0, text.length - text.trimStart().length)
     + translated + text.slice(text.trimEnd().length);
 }
+
+const FACTS_SEPARATOR = " \u00b7 ";
+const TOKEN_SUMMARY = /\btokens\s*\(\d+%\)$/i;
+
+const FACTS_THINKING_TERMS: ReadonlySet<string> = new Set([
+  "Low", "Medium", "High", "Extra", "Extra high", "Extra High", "Very high",
+  "Unknown", "Max", "Maximum", "Ultra", "Ultra code", "Ultra Code", "Ultracode",
+  "Minimal", "None", "Off", "On", "Auto", "Automatic", "Adaptive", "Default",
+  "轻度", "低", "中", "高", "极高", "未知", "最大", "最高", "最低", "无",
+  "关闭", "开启", "自动", "自适应", "默认",
+]);
+
+const FACTS_MODE_TERMS: ReadonlySet<string> = new Set([
+  "Default", "Auto", "Plan", "Build", "Code", "Chat", "Agent", "Ask", "Bypass",
+  "Full access", "Full Access",
+  "Read only", "Read-only",
+  "Default permissions", "Default Permissions",
+  "Auto-review", "Auto review", "Auto Review",
+  "Always ask", "Always Ask",
+  "Ask before edits",
+  "Auto edit", "Auto-edit",
+  "Auto approve", "Auto-approve",
+  "Accept edits", "Accept Edits",
+  "Accept file edits", "Accept File Edits",
+  "Auto accept edits",
+  "Allow all", "Allow All",
+  "Write approval", "Write Approval",
+  "Auto mode",
+  "Bypass permissions", "Bypass Permissions",
+  "Don't ask",
+  "Plan mode", "Plan Mode",
+  "Auto accept", "Auto-accept", "Auto Accept",
+  "默认", "自动", "计划", "构建", "编码", "对话", "智能体", "询问", "跳过权限确认",
+  "完全访问", "只读", "默认权限", "自动审查", "始终询问", "编辑前询问",
+  "自动编辑", "自动批准", "自动接受编辑", "自动接受文件编辑",
+  "全部允许", "写入审批", "自动模式", "不再询问", "计划模式", "自动接受",
+]);
+
+export function translateFactsLine(text: string, provider?: string): string {
+  const trimmed = text.trim();
+  const parts = trimmed.split(FACTS_SEPARATOR);
+  if (parts.length < 2) return text;
+  const end = TOKEN_SUMMARY.test(parts[parts.length - 1]) ? parts.length - 2 : parts.length - 1;
+  if (end < 1) return text;
+
+  const effectiveProvider = provider
+    ?? (/\b(?:claude|opus|sonnet|haiku)\b/i.test(parts[0]) ? "claude" : undefined);
+  const next = [...parts];
+  let changed = false;
+
+  if (FACTS_MODE_TERMS.has(parts[end])) {
+    const modeLabel = translatePhrase(parts[end], { provider: effectiveProvider, thinking: false });
+    if (modeLabel !== parts[end]) {
+      next[end] = modeLabel;
+      changed = true;
+    }
+    if (end - 1 >= 1 && FACTS_THINKING_TERMS.has(parts[end - 1])) {
+      const thinkingLabel = translatePhrase(parts[end - 1], { provider: effectiveProvider, thinking: true });
+      if (thinkingLabel !== parts[end - 1]) {
+        next[end - 1] = thinkingLabel;
+        changed = true;
+      }
+    }
+  } else if (FACTS_THINKING_TERMS.has(parts[end])) {
+    const thinkingLabel = translatePhrase(parts[end], { provider: effectiveProvider, thinking: true });
+    if (thinkingLabel !== parts[end]) {
+      next[end] = thinkingLabel;
+      changed = true;
+    }
+  }
+
+  if (!changed) return text;
+  return text.slice(0, text.length - text.trimStart().length)
+    + next.join(FACTS_SEPARATOR) + text.slice(text.trimEnd().length);
+}

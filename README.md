@@ -2,7 +2,7 @@
 
 [简体中文](README.zh-CN.md)
 
-Fills gaps in Paseo's Simplified Chinese interface, including subagents, the sidebar, workspaces, settings, reviews and Git actions. It also translates the agent composer's thinking effort, permissions, speed, plan mode, menus, tooltips and accessibility labels.
+Fills gaps in Paseo's Simplified Chinese interface, including subagents, the sidebar, workspaces, settings, reviews and Git actions. It also translates composer controls and the thinking effort and permission labels in subagent lists and agent pane subtitles.
 
 ![Isolated interface preview using the plugin's actual translator](assets/controls-demo.png)
 
@@ -20,7 +20,7 @@ Claude Code's effort names follow the effort-menu mappings in [javaht/claude-des
 Supports Paseo 0.15.4 through 0.17.x on desktop, browser, native iOS and native Android clients. On 0.17.x, the plugin adds reversible overrides to the built-in `zh-CN` translation resources. Composer control translation also works on the supported 0.15 and 0.16 versions.
 
 ```sh
-paseo plugin add git:kogekiplay/paseo-agent-controls-zh --ref v0.3.0
+paseo plugin add git:kogekiplay/paseo-agent-controls-zh --ref v0.3.1
 ```
 
 Translation is enabled on installation. Choose Simplified Chinese in Paseo to see the interface translations. Open the Command Center and search for **Paseo 整体汉化：翻译设置**, or open this plugin's settings. The browser saves the switch locally. On native clients the switch lasts for the current app run and starts enabled after relaunch. Turning off translation or unloading the plugin restores the original interface and composer labels.
