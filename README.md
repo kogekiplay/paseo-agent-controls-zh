@@ -17,10 +17,10 @@ Claude Code's effort names follow the effort-menu mappings in [javaht/claude-des
 
 ## Install
 
-Supports Paseo 0.15.4 through 0.17.x on desktop, browser, native iOS and native Android clients. On 0.17.x, the plugin adds reversible overrides to the built-in `zh-CN` translation resources. Composer control translation also works on the supported 0.15 and 0.16 versions.
+Supports Paseo 0.15.4 through 0.18.x on desktop, browser, native iOS and native Android clients. On 0.17.x and 0.18.x, the plugin adds reversible overrides to the built-in `zh-CN` translation resources. Composer control translation also works on the supported 0.15 and 0.16 versions.
 
 ```sh
-paseo plugin add git:kogekiplay/paseo-agent-controls-zh --ref v0.3.1
+paseo plugin add git:kogekiplay/paseo-agent-controls-zh --ref v0.3.2
 ```
 
 Translation is enabled on installation. Choose Simplified Chinese in Paseo to see the interface translations. Open the Command Center and search for **Paseo 整体汉化：翻译设置**, or open this plugin's settings. The browser saves the switch locally. On native clients the switch lasts for the current app run and starts enabled after relaunch. Turning off translation or unloading the plugin restores the original interface and composer labels.
@@ -43,7 +43,7 @@ Codex speed choices include Normal, Fast and Ultrafast. Their translated labels 
 
 This is a client-only plugin. The browser adapter observes agent IDs and provider metadata through the existing Paseo connection to select a dictionary for each composer. Browser drafts without agent metadata recognize Claude by the displayed model family. The native adapter uses the provider already passed to the host control components. Existing agents prefer their actual provider, so a Codex agent routing to another model still uses Codex labels.
 
-Translation uses a local dictionary for known interface strings and composer labels. Chat messages, input drafts, code diffs, terminal output and model names render from their original data. The browser adapter depends on host page structure. The native adapter wraps recognized controls and menus through Paseo's shared React element factories. It handles 0.15 controls and the precomputed control items and provider options in 0.16 and 0.17.
+Translation uses a local dictionary for known interface strings and composer labels. Chat messages, input drafts, code diffs, terminal output and model names render from their original data. The browser adapter depends on host page structure. The native adapter wraps recognized controls and menus through Paseo's shared React element factories. It handles 0.15 controls and the precomputed control items and provider options in 0.16 through 0.18.
 
 ## Development
 

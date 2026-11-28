@@ -2,7 +2,7 @@ export interface NestedTranslations {
   readonly [key: string]: string | NestedTranslations;
 }
 
-/** Simplified Chinese overrides for Paseo 0.17.1's translation namespace. */
+/** Simplified Chinese overrides for Paseo's built-in translation namespace. */
 export const paseoZhOverrides: NestedTranslations = {
   common: {
     errors: {
@@ -15,7 +15,6 @@ export const paseoZhOverrides: NestedTranslations = {
     commandCenter: {
       newAgent: "新建智能体",
       addProject: "添加项目",
-      copyBrowserHostName: "复制浏览器主机名",
     },
   },
   composer: {
@@ -37,8 +36,6 @@ export const paseoZhOverrides: NestedTranslations = {
     },
     attachments: {
       addFile: "上传文件",
-      addIssueOrPr: "添加 Issue 或 PR",
-      addIssueOrPr_mr: "添加 Issue 或 MR",
       dropFilesHere: "将文件拖到这里",
       removeFile: "移除文件附件",
       openReview: "打开审查附件",
@@ -58,8 +55,6 @@ export const paseoZhOverrides: NestedTranslations = {
     github: {
       searchPlaceholder: "搜索 Issue 和 PR…",
       searchPlaceholder_mr: "搜索 Issue 和 MR…",
-      title: "附加 Issue 或 PR",
-      title_mr: "附加 Issue 或 MR",
     },
   },
   agentControls: {
@@ -88,7 +83,6 @@ export const paseoZhOverrides: NestedTranslations = {
     hints: {
       thinking: "思考模式",
       model: "切换模型",
-      mode: "切换模式",
     },
   },
   agentStream: {
@@ -101,7 +95,6 @@ export const paseoZhOverrides: NestedTranslations = {
     states: {
       notFound: "未找到智能体",
       failedToLoad: "加载智能体失败",
-      timelineSyncFailed: "无法刷新智能体历史记录。",
       archivingTitle: "正在归档智能体…",
       archivingSubtitle: "正在归档此智能体，请稍候。",
     },
@@ -125,7 +118,6 @@ export const paseoZhOverrides: NestedTranslations = {
   },
   message: {
     actions: {
-      copyTurn: "复制本轮对话",
       forkMissingWorkspace: "此智能体不在工作区中。",
     },
   },
@@ -152,7 +144,6 @@ export const paseoZhOverrides: NestedTranslations = {
       recovery: {
         archivedTitle: "工作区已归档",
         restoreDescription: "恢复 {{workspaceName}} 即可返回其中的智能体。工作树将使用分支 {{branch}}。",
-        restoreWithoutBranchDescription: "恢复 {{workspaceName}} 即可返回其中的智能体。",
         restoringTitle: "正在恢复工作区",
         unavailableTitle: "工作区不可用",
         checkFailedTitle: "无法检查工作区",
@@ -167,24 +158,16 @@ export const paseoZhOverrides: NestedTranslations = {
       },
     },
     setup: {
-      updateHost: "更新主机以查看工作区初始化详情",
       descriptor: {
         label: "初始化",
         completed: "初始化已完成",
         failed: "初始化失败",
         workspace: "工作区初始化",
-        blocked: "初始化受阻",
       },
       status: {
         waiting: "正在等待初始化输出",
       },
       waiting: "正在初始化工作区…",
-      blocked: {
-        title: "未运行初始化",
-        description: "此 PR 来自另一个仓库 {{repository}}。其初始化命令和脚本可能运行你尚未审查的代码。",
-        run: "运行初始化",
-        runFailed: "运行工作区初始化失败",
-      },
       empty: {
         noCommands: "此工作区尚未运行初始化命令。",
       },
@@ -308,10 +291,6 @@ export const paseoZhOverrides: NestedTranslations = {
           pending: "正在拉取并推送…",
           success: "已拉取并推送",
         },
-        createPr: {
-          pending: "正在创建 PR…",
-          pending_mr: "正在创建 MR…",
-        },
         mergeBranch: {
           label: "本地合并",
           pending: "正在合并…",
@@ -343,6 +322,7 @@ export const paseoZhOverrides: NestedTranslations = {
           pullDirty: "有本地变更，请先提交或贮藏再拉取",
           pullUpToDate: "此分支已是最新，无需拉取",
           pushNoRemote: "此分支尚未关联远程分支，无法推送",
+          pushUpstreamGone: "此分支跟踪的远程分支已不存在，无法推送",
           pushBehind: "请先拉取远程变更再推送",
           pushNothing: "没有可推送的新提交",
           pullAndPushNoRemote: "此分支尚未关联远程分支，无法拉取并推送",
@@ -395,8 +375,6 @@ export const paseoZhOverrides: NestedTranslations = {
         split: "并排差异",
         options: "差异选项",
         inlineDiff: "内联差异",
-        refreshState: "刷新 Git 和 {{brand}} 状态",
-        failedRefresh: "刷新 Git 状态失败。",
         seeUncommittedChanges: "查看未提交的变更",
         seeCommittedChanges: "查看已提交的变更",
         checkingRepository: "正在检查仓库…",
@@ -426,9 +404,6 @@ export const paseoZhOverrides: NestedTranslations = {
     },
   },
   sidebar: {
-    statusBucket: {
-      readyToReview: "待审查",
-    },
     host: {
       noHost: "暂无主机",
       switchTitle: "切换主机",
@@ -529,7 +504,6 @@ export const paseoZhOverrides: NestedTranslations = {
   },
   desktop: {
     quitting: {
-      title: "正在退出 Paseo…",
       detail: "正在停止本地守护进程。",
     },
     daemon: {
@@ -581,10 +555,13 @@ export const paseoZhOverrides: NestedTranslations = {
     updates: {
       status: {
         checking: "正在检查应用更新…",
+        downloadingProgress: "正在下载应用更新… {{percent}}%",
         installing: "正在安装应用更新…",
         upToDate: "应用已是最新版本。",
         available: "有可用的应用更新。",
         availableWithLastChecked: "有可用的应用更新。上次检查时间：{{time}}。",
+        downloadAvailable: "有可用的应用更新。",
+        downloadAvailableWithLastChecked: "有可用的应用更新。上次检查时间：{{time}}。",
         installed: "应用更新已安装，请重启。",
         failed: "应用更新失败。",
       },
@@ -593,21 +570,13 @@ export const paseoZhOverrides: NestedTranslations = {
         restartWarning: "升级应用会停止运行中的智能体并关闭终端会话。",
       },
     },
-    rosetta: {
-      title: "下载 Apple Silicon 版",
-      runningIntel: "当前正在 Apple Silicon 设备上通过 Rosetta 运行 Intel 版 Paseo。",
-      highCpu: "这会增加 CPU 占用。下载 Apple Silicon 版即可解决。",
-    },
     permissions: {
       notifications: {
         webOnly: "桌面通知状态仅在网页环境中可用。",
-        apiUnavailable: "当前环境不支持 Web Notification API。",
         requestsWebOnly: "桌面通知权限仅可在网页环境中申请。",
-        requestUnavailable: "Web Notification API 的 requestPermission() 不可用。",
       },
       microphone: {
         webOnly: "桌面麦克风状态仅在网页环境中可用。",
-        navigatorUnavailable: "当前环境不支持 Navigator。",
         statusApiUnavailable: "当前环境不支持查询麦克风权限的 API。请通过发起权限请求检查访问权限。",
         requestsWebOnly: "桌面麦克风权限仅可在网页环境中申请。",
       },
@@ -627,9 +596,6 @@ export const paseoZhOverrides: NestedTranslations = {
     tiles: {
       addProject: {
         title: "添加项目",
-      },
-      importSession: {
-        description: "导入在终端中通过 Claude Code、Codex 等 CLI 启动的会话",
       },
       setupProviders: {
         title: "设置提供方",
@@ -672,20 +638,8 @@ export const paseoZhOverrides: NestedTranslations = {
   },
   onboarding: {
     setup: {
-      skip: "跳过初始化",
       steps: {
-        providers: {
-          description: "Paseo 使用此电脑上已安装的智能体 CLI",
-        },
-        projects: {
-          description: "选择智能体的工作位置",
-        },
-        orchestration: {
-          title: "让智能体使用 Paseo",
-          description: "让智能体创建工作区并与其他智能体对话",
-        },
         phone: {
-          title: "随身使用智能体",
           tailscale: {
             hint: "需要先完成配置",
           },
@@ -695,11 +649,6 @@ export const paseoZhOverrides: NestedTranslations = {
   },
   modelSelector: {
     title: "选择提供方",
-    profiles: "预设",
-    editProfilesLabel: "编辑智能体预设",
-    createProfile: "创建预设",
-    createProfileFromModel: "从此模型创建预设",
-    editProfilesCount: "编辑预设（{{count}}）",
   },
   providerCatalog: {
     title: "添加提供方",
@@ -742,11 +691,6 @@ export const paseoZhOverrides: NestedTranslations = {
         unableToConnect: "无法连接。请检查主机和端口，并确认守护进程可访问。",
       },
     },
-    remoteSsh: {
-      errors: {
-        invalidTarget: "请输入有效的 ssh:// 主机地址",
-      },
-    },
     link: {
       helper: "粘贴服务器提供的配对链接。",
       errors: {
@@ -785,23 +729,12 @@ export const paseoZhOverrides: NestedTranslations = {
     hostUnavailable: "下载主机不可用。",
   },
   subagents: {
-    parent: {
-      backToParent: "返回父智能体",
-      parentAgent: "父智能体",
-      openParent: "打开父智能体",
-    },
     title: "子智能体",
     pillLabelOne: "1 个子智能体",
     pillLabelMany: "{{count}} 个子智能体",
-    pillLabelWorking: "运行中 {{count}} 个",
-    pillLabelFailed: "失败 {{count}} 个",
-    pillLabelNeedsInputOne: "1 个待输入",
-    pillLabelNeedsInputMany: "{{count}} 个待输入",
-    pillLabelReadyToReview: "{{count}} 个待审查",
     detachTooltip: "分离子智能体",
     archiveTooltip: "归档子智能体",
     archiveFinishedAction: "归档已完成的子智能体",
-    archiveFinishedRetry: "重试（{{failed}}/{{total}}）",
   },
   panels: {
     draft: {
@@ -886,13 +819,8 @@ export const paseoZhOverrides: NestedTranslations = {
         errorTitle: "无法加载插件日志",
         empty: "插件暂无输出",
       },
-      sourcePlaceholder: "owner/slug、目录、Git URL 或 npm 包",
     },
     general: {
-      setup: {
-        label: "应用初始化",
-        action: "重新打开初始化向导",
-      },
       defaultSend: {
         descriptions: {
           interrupt: "智能体运行时，Enter 会中断，Command/Ctrl+Enter 会将消息加入队列。",
@@ -904,9 +832,6 @@ export const paseoZhOverrides: NestedTranslations = {
           steer: "智能体运行时，{{modifier}}+Enter 会引导当前轮次，Enter 会换行。",
           queue: "智能体运行时，{{modifier}}+Enter 会将消息加入队列，Enter 会换行。",
         },
-      },
-      autoExpandReasoning: {
-        description: "默认完全展开智能体的思考和推理内容",
       },
     },
     diagnostics: {
@@ -958,7 +883,6 @@ export const paseoZhOverrides: NestedTranslations = {
         jumpToWorkspace: "跳转到工作区",
         previousWorkspace: "上一个工作区",
         nextWorkspace: "下一个工作区",
-        cycleAgentMode: "循环切换权限模式",
         interruptAgent: "中断智能体",
       },
     },
@@ -983,7 +907,6 @@ export const paseoZhOverrides: NestedTranslations = {
       skills: {
         sectionTitle: "编排技能",
         title: "编排技能",
-        description: "教智能体使用 Paseo 工具",
         docs: "技能",
         openDocs: "打开技能文档",
         unavailable: "连接到此主机以管理编排技能",
@@ -1025,11 +948,6 @@ export const paseoZhOverrides: NestedTranslations = {
       },
       agents: {
         unavailable: "连接到此主机以管理智能体",
-        resumeOnStartup: {
-          info: "重新打开主机停止时正在工作的智能体，并发送恢复提示词。适用于正常重启和崩溃后的恢复。",
-          prompt: "恢复提示词",
-          editAccessibilityLabel: "编辑提示词",
-        },
         idleRuntimeCleanup: {
           title: "释放空闲智能体",
           info: "停止智能体进程并保留对话。发送消息即可继续。\n\n进行中的工作、待处理的通知和提供方的安全检查会阻止清理。",
@@ -1061,12 +979,11 @@ export const paseoZhOverrides: NestedTranslations = {
       },
       agentProfiles: {
         sectionTitle: "智能体预设",
+        sectionDescription: "保存智能体预设，供你快速选用，也可供智能体委派任务时使用。",
         unavailable: "连接到此主机以管理智能体预设",
         unsupported: "此主机的守护进程尚不支持智能体预设",
         emptyState: "暂无预设。添加预设后，可使用已保存的提供方和模型启动智能体。",
         addProfileTitle: "添加智能体预设",
-        newProfile: "新建预设",
-        editProfile: "编辑预设",
         editProfileTitle: "编辑智能体预设",
         providerLabel: "提供方",
         providerPlaceholder: "选择提供方",
@@ -1082,7 +999,8 @@ export const paseoZhOverrides: NestedTranslations = {
         featureCountOne: "{{count}} 项功能",
         notesPlaceholder: "用于界面开发，如组件、布局和设计令牌。",
         notesHint: "帮助智能体在启动另一个智能体时选择此预设。",
-        removeConfirmTitle: "移除预设？",
+        systemPromptLabel: "系统提示词",
+        systemPromptHint: "仅适用于新建的智能体",
       },
       daemon: {
         rename: {
@@ -1159,6 +1077,7 @@ export const paseoZhOverrides: NestedTranslations = {
         errorTitle: "无法移除提供方",
       },
       models: {
+        title: "模型",
         one: "1 个模型",
         many: "{{count}} 个模型",
         addModel: "添加模型",
@@ -1190,7 +1109,6 @@ export const paseoZhOverrides: NestedTranslations = {
         info: "为此项目创建或清理工作树时运行的命令",
         setup: "初始化",
         setupAccessibility: "工作树初始化命令",
-        uncommittedDescription: "新工作树将使用所选基准分支中的初始化脚本。",
         teardown: "清理",
         teardownAccessibility: "工作树清理命令",
       },
@@ -1205,7 +1123,6 @@ export const paseoZhOverrides: NestedTranslations = {
         nameAccessibility: "脚本名称",
         commandAccessibility: "脚本命令",
         newScript: "新建脚本",
-        serviceHint: "Paseo 会管理该进程，并通过 $PASEO_PORT 分配端口",
         actions: {
           add: "添加脚本",
         },
@@ -1214,7 +1131,6 @@ export const paseoZhOverrides: NestedTranslations = {
         info: "Paseo 生成元数据时会将这些项目指令加入提示词，例如分支命名、提交格式或 PR 格式",
         commitMessagePlaceholder: "使用带作用域的 Conventional Commits",
         pullRequest: "PR",
-        pullRequestPlaceholder: "先写一段摘要，并包含 Test plan 一节",
       },
       actions: {
         saved: "项目已保存",

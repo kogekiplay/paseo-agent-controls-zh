@@ -21,11 +21,12 @@ function hostNamespace(module: Record<string, unknown>) {
 
 it.skipIf(!bundlePath).each([
   ["0.15", "ios"], ["0.15", "android"], ["0.16", "ios"], ["0.16", "android"],
-  ["0.17", "ios"], ["0.17", "android"],
+  ["0.17", "ios"], ["0.17", "android"], ["0.18", "ios"], ["0.18", "android"],
 ])(
   "executes the daemon-compiled bundle with Paseo %s's %s host boundary",
   async (version, platform) => {
-    const usesItems = version === "0.16" || version === "0.17";
+    const usesItems = version === "0.16" || version === "0.17" || version === "0.18";
+    const usesModern = version === "0.17" || version === "0.18";
     const originalJsx = jsx.jsx;
     const originalCreate = rawReact.createElement;
     const originalUseContext = rawReact.useContext;
@@ -197,7 +198,7 @@ it.skipIf(!bundlePath).each([
           }, provider),
         ), usesItems ? jsx.jsx(FoldedModel, {
           providers: [], selectedProvider: "codex", thinkingLabel: "Extra high", onSelect: () => {},
-        }) : null, version === "0.17" ? jsx.jsx(AntigravityControls, {
+        }) : null, usesModern ? jsx.jsx(AntigravityControls, {
           provider: "antigravity", modelSelectorProviders: [],
           thinkingItems: [{
             id: "thinking", testID: "agent-thinking-selector", type: "select", title: "Thinking",
@@ -222,27 +223,36 @@ it.skipIf(!bundlePath).each([
             selectedModeId: "full-access",
             onSelectMode: () => {},
           },
-        }) : null, version === "0.17"
+        }) : null, usesModern
           ? jsx.jsx(I18nContext.Provider, { value: { i18n: mockI18n }, children: jsx.jsx(SubagentPill, {}) })
-          : null, version === "0.17"
+          : null, usesModern
           ? jsx.jsx("NativeFactsRow", {
             testID: "subagents-track-row-facts-ag-1",
             children: "Gemini 4 Neon · High · Full access · 258k / 1m tokens (25%)",
           })
+          : null, version === "0.18"
+          ? jsx.jsx("NativePaneSubtitle", {
+            testID: "agent-pane-subtitle",
+            children: "Claude Opus 4.5 · Low · Accept edits · 50k / 200k tokens (25%)",
+          })
           : null] }));
       });
-      if (version === "0.17") {
+      if (usesModern) {
         expect(rawReact.useContext).toBe(originalUseContext);
         expect(app!.root.findByType("NativeSubagentPill").props.children).toBe("2 个子智能体");
         expect(app!.root.findByType("NativeFactsRow").props.children)
           .toBe("Gemini 4 Neon · 高 · 完全访问 · 258k / 1m tokens (25%)");
+      }
+      if (version === "0.18") {
+        expect(app!.root.findByType("NativePaneSubtitle").props.children)
+          .toBe("Claude Opus 4.5 · 低 · 自动接受编辑 · 50k / 200k tokens (25%)");
       }
       if (usesItems) {
         expect(app!.root.findByType("NativeText").props).toMatchObject({
           children: "GPT-6.1 Sol · routing group", numberOfLines: 1, ellipsizeMode: "tail",
         });
       }
-      if (version === "0.17") {
+      if (usesModern) {
         const agThinking = app!.root.findByType("NativeAntigravityThinking");
         expect(agThinking.props.value).toBe("极高");
         expect(agThinking.props.choices.map((choice: any) => choice.label))
@@ -284,13 +294,17 @@ it.skipIf(!bundlePath).each([
       if (usesItems) {
         expect(app!.root.findByType("WordBoundaryLabel").props.text).toBe("GPT-6.1 Sol · routing group");
       }
-      if (version === "0.17") {
+      if (usesModern) {
         expect(app!.root.findByType("NativeAntigravityThinking").props.value).toBe("Extra");
         expect(app!.root.findByType("NativeModeTrigger").props.value).toBe("Full access");
         expect(app!.root.findByType("NativeModeMenu").props.header.search.placeholder).toBe("搜索 modes...");
         expect(app!.root.findByType("NativeSubagentPill").props.children).toBe("2个subagent");
         expect(app!.root.findByType("NativeFactsRow").props.children)
           .toBe("Gemini 4 Neon · High · Full access · 258k / 1m tokens (25%)");
+      }
+      if (version === "0.18") {
+        expect(app!.root.findByType("NativePaneSubtitle").props.children)
+          .toBe("Claude Opus 4.5 · Low · Accept edits · 50k / 200k tokens (25%)");
       }
       expect(app!.root.findAllByType("NativeControl").map((node) => node.props.value))
         .toEqual(["Ultra code", "Ultra code"]);
@@ -302,22 +316,30 @@ it.skipIf(!bundlePath).each([
       await act(() => settings!.root.findByType("NativePressable").props.onPress());
       expect(app!.root.findAllByType("NativeControl").map((node) => node.props.value))
         .toEqual(["Ultracode", "Ultra"]);
-      if (version === "0.17") {
+      if (usesModern) {
         expect(app!.root.findByType("NativeAntigravityThinking").props.value).toBe("极高");
         expect(app!.root.findByType("NativeModeMenu").props.header.search.placeholder).toBe("搜索模式…");
         expect(app!.root.findByType("NativeSubagentPill").props.children).toBe("2 个子智能体");
         expect(app!.root.findByType("NativeFactsRow").props.children)
           .toBe("Gemini 4 Neon · 高 · 完全访问 · 258k / 1m tokens (25%)");
       }
+      if (version === "0.18") {
+        expect(app!.root.findByType("NativePaneSubtitle").props.children)
+          .toBe("Claude Opus 4.5 · 低 · 自动接受编辑 · 50k / 200k tokens (25%)");
+      }
       await act(() => release!());
       expect(app!.root.findAllByType("NativeControl").map((node) => node.props.value))
         .toEqual(["Ultra code", "Ultra code"]);
-      if (version === "0.17") {
+      if (usesModern) {
         expect(app!.root.findByType("NativeAntigravityThinking").props.value).toBe("Extra");
         expect(app!.root.findByType("NativeModeMenu").props.header.search.placeholder).toBe("搜索 modes...");
         expect(app!.root.findByType("NativeSubagentPill").props.children).toBe("2个subagent");
         expect(app!.root.findByType("NativeFactsRow").props.children)
           .toBe("Gemini 4 Neon · High · Full access · 258k / 1m tokens (25%)");
+      }
+      if (version === "0.18") {
+        expect(app!.root.findByType("NativePaneSubtitle").props.children)
+          .toBe("Claude Opus 4.5 · Low · Accept edits · 50k / 200k tokens (25%)");
       }
     } finally {
       if (app) await act(() => app!.unmount());

@@ -70,7 +70,6 @@ export const phrases: Readonly<Record<string, string>> = {
   "Agent": "智能体",
   "Mode": "模式",
   "Change mode": "切换模式",
-  "更改模式": "切换模式",
   "Search modes...": "搜索模式…",
   "搜索 modes...": "搜索模式…",
   "搜索modes...": "搜索模式…",

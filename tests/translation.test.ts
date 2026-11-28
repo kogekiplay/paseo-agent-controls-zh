@@ -78,7 +78,7 @@ describe("UI phrase dictionary", () => {
     expect(translatePhrase("选择 Agent mode")).toBe("选择权限模式");
     expect(translatePhrase("选择 Agent mode（Full access）")).toBe("选择权限模式（完全访问）");
     expect(translatePhrase("打开 Agent features")).toBe("打开智能体功能");
-    expect(translatePhrase("更改模式")).toBe("切换模式");
+    expect(translatePhrase("更改模式")).toBe("更改模式");
     expect(translatePhrase("Default Permissions")).toBe("默认权限");
     expect(translatePhrase("Always Ask")).toBe("始终询问");
     expect(translatePhrase("Accept File Edits")).toBe("自动接受文件编辑");
